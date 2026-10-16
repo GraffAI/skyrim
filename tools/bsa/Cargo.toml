@@ -1,0 +1,17 @@
+[package]
+name = "bsa"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[[bin]]
+name = "bsa"
+path = "src/main.rs"
+
+[dependencies]
+ba2 = "3.0.1"
+globset = "0.4"
+anyhow = "1"
+
+[profile.release]
+lto = "thin"

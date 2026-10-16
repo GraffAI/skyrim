@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="ascii"?>
+<!-- Hand-made test fixture (not game data): the referenced graph; it points back at Main (a cycle). -->
+<hkpackfile classversion="8" contentsversion="hk_2010.2.0-r1" toplevelobject="#0001">
+	<hksection name="__data__">
+		<hkobject name="#0010" class="hkbStateMachine" signature="0x816c1dcb">
+			<hkparam name="name">SubRoot</hkparam>
+			<hkparam name="startStateId">0</hkparam>
+			<hkparam name="states" numelements="1">#0011</hkparam>
+			<hkparam name="wildcardTransitions">null</hkparam>
+		</hkobject>
+		<hkobject name="#0011" class="hkbStateMachineStateInfo" signature="0xed7f9d0">
+			<hkparam name="generator">#0012</hkparam>
+			<hkparam name="name">Back</hkparam>
+			<hkparam name="stateId">0</hkparam>
+		</hkobject>
+		<hkobject name="#0012" class="hkbBehaviorReferenceGenerator" signature="0xfcb5423">
+			<hkparam name="name">ToMain</hkparam>
+			<hkparam name="behaviorName">Behaviors\Main.hkx</hkparam>
+		</hkobject>
+		<hkobject name="#0002" class="hkbBehaviorGraph" signature="0xb1218f86">
+			<hkparam name="name">Sub.hkb</hkparam>
+			<hkparam name="rootGenerator">#0010</hkparam>
+			<hkparam name="data">null</hkparam>
+		</hkobject>
+		<hkobject name="#0001" class="hkRootLevelContainer" signature="0x2772c11e">
+			<hkparam name="namedVariants" numelements="1">
+				<hkobject>
+					<hkparam name="name">hkbBehaviorGraph</hkparam>
+					<hkparam name="className">hkbBehaviorGraph</hkparam>
+					<hkparam name="variant">#0002</hkparam>
+				</hkobject>
+			</hkparam>
+		</hkobject>
+	</hksection>
+</hkpackfile>

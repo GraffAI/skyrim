@@ -1,0 +1,134 @@
+<?xml version="1.0" encoding="ascii"?>
+<!-- Hand-made test fixture (not game data): a root state machine with a clip state and a state
+     that hands off to Behaviors\Sub.hkx. Objects are deliberately out of order (forward refs). -->
+<hkpackfile classversion="8" contentsversion="hk_2010.2.0-r1" toplevelobject="#0001">
+	<hksection name="__data__">
+		<hkobject name="#0010" class="hkbStateMachine" signature="0x816c1dcb">
+			<!-- memSizeAndFlags SERIALIZE_IGNORED -->
+			<hkparam name="variableBindingSet">null</hkparam>
+			<hkparam name="userData">0</hkparam>
+			<hkparam name="name">TinyRoot</hkparam>
+			<hkparam name="startStateId">1</hkparam>
+			<hkparam name="startStateMode">START_STATE_MODE_DEFAULT</hkparam>
+			<hkparam name="states" numelements="2">
+				#0011 #0013
+			</hkparam>
+			<hkparam name="wildcardTransitions">#0020</hkparam>
+		</hkobject>
+		<hkobject name="#0011" class="hkbStateMachineStateInfo" signature="0xed7f9d0">
+			<hkparam name="generator">#0012</hkparam>
+			<hkparam name="name">Waving</hkparam>
+			<hkparam name="stateId">1</hkparam>
+			<hkparam name="probability">1.000000</hkparam>
+			<hkparam name="enable">true</hkparam>
+		</hkobject>
+		<hkobject name="#0012" class="hkbClipGenerator" signature="0x333b85b9">
+			<hkparam name="name">Wave &amp; Smile</hkparam>
+			<hkparam name="animationName">Animations\Wave.hkx</hkparam>
+			<hkparam name="playbackSpeed">1.000000</hkparam>
+			<hkparam name="mode">MODE_LOOPING</hkparam>
+		</hkobject>
+		<hkobject name="#0013" class="hkbStateMachineStateInfo" signature="0xed7f9d0">
+			<hkparam name="generator">#0014</hkparam>
+			<hkparam name="name">Elsewhere</hkparam>
+			<hkparam name="stateId">2</hkparam>
+		</hkobject>
+		<hkobject name="#0014" class="hkbBehaviorReferenceGenerator" signature="0xfcb5423">
+			<hkparam name="name">ToSub</hkparam>
+			<hkparam name="behaviorName">Behaviors\Sub.hkx</hkparam>
+		</hkobject>
+		<hkobject name="#0020" class="hkbStateMachineTransitionInfoArray" signature="0xe397b11e">
+			<hkparam name="transitions" numelements="1">
+				<hkobject>
+					<hkparam name="triggerInterval">
+						<hkobject>
+							<hkparam name="enterEventId">-1</hkparam>
+							<hkparam name="exitEventId">-1</hkparam>
+						</hkobject>
+					</hkparam>
+					<hkparam name="transition">null</hkparam>
+					<hkparam name="condition">null</hkparam>
+					<hkparam name="eventId">1</hkparam>
+					<hkparam name="toStateId">2</hkparam>
+					<hkparam name="flags">FLAG_IS_LOCAL_WILDCARD|FLAG_DISABLE_CONDITION</hkparam>
+				</hkobject>
+			</hkparam>
+		</hkobject>
+		<hkobject name="#0004" class="hkbBehaviorGraphStringData" signature="0xc713064e">
+			<hkparam name="eventNames" numelements="2">
+				<hkcstring>Wave</hkcstring>
+				<hkcstring>GoElsewhere</hkcstring>
+			</hkparam>
+			<hkparam name="attributeNames" numelements="0"></hkparam>
+			<hkparam name="variableNames" numelements="2">
+				<hkcstring>fSpeed</hkcstring>
+				<hkcstring> leadingSpace</hkcstring>
+			</hkparam>
+			<hkparam name="characterPropertyNames" numelements="0"></hkparam>
+		</hkobject>
+		<hkobject name="#0005" class="hkbVariableValueSet" signature="0x27812d8d">
+			<hkparam name="wordVariableValues" numelements="2">
+				<hkobject>
+					<hkparam name="value">1065353216</hkparam>
+				</hkobject>
+				<hkobject>
+					<hkparam name="value">0</hkparam>
+				</hkobject>
+			</hkparam>
+			<hkparam name="quadVariableValues" numelements="1">
+				(1.000000 2.000000 3.000000 4.000000)
+			</hkparam>
+			<hkparam name="variantVariableValues" numelements="0"></hkparam>
+		</hkobject>
+		<hkobject name="#0003" class="hkbBehaviorGraphData" signature="0x95aca5d">
+			<hkparam name="attributeDefaults" numelements="0"></hkparam>
+			<hkparam name="variableInfos" numelements="2">
+				<hkobject>
+					<hkparam name="role">
+						<hkobject>
+							<hkparam name="role">ROLE_DEFAULT</hkparam>
+							<hkparam name="flags">0</hkparam>
+						</hkobject>
+					</hkparam>
+					<hkparam name="type">VARIABLE_TYPE_REAL</hkparam>
+				</hkobject>
+				<hkobject>
+					<hkparam name="role">
+						<hkobject>
+							<hkparam name="role">ROLE_DEFAULT</hkparam>
+							<hkparam name="flags">0</hkparam>
+						</hkobject>
+					</hkparam>
+					<hkparam name="type">VARIABLE_TYPE_VECTOR4</hkparam>
+				</hkobject>
+			</hkparam>
+			<hkparam name="eventInfos" numelements="2">
+				<hkobject>
+					<hkparam name="flags">0</hkparam>
+				</hkobject>
+				<hkobject>
+					<hkparam name="flags">FLAG_SYNC_POINT</hkparam>
+				</hkobject>
+			</hkparam>
+			<hkparam name="variableInitialValues">#0005</hkparam>
+			<hkparam name="stringData">#0004</hkparam>
+		</hkobject>
+		<hkobject name="#0002" class="hkbBehaviorGraph" signature="0xb1218f86">
+			<hkparam name="variableBindingSet">null</hkparam>
+			<hkparam name="userData">0</hkparam>
+			<hkparam name="name">Main.hkb</hkparam>
+			<hkparam name="variableMode">VARIABLE_MODE_DISCARD_WHEN_INACTIVE</hkparam>
+			<hkparam name="rootGenerator">#0010</hkparam>
+			<hkparam name="data">#0003</hkparam>
+		</hkobject>
+		<hkobject name="#0001" class="hkRootLevelContainer" signature="0x2772c11e">
+			<hkparam name="namedVariants" numelements="1">
+				<hkobject>
+					<hkparam name="name">hkbBehaviorGraph</hkparam>
+					<hkparam name="className">hkbBehaviorGraph</hkparam>
+					<hkparam name="variant">#0002</hkparam>
+				</hkobject>
+			</hkparam>
+		</hkobject>
+	</hksection>
+</hkpackfile>

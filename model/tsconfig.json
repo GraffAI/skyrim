@@ -1,0 +1,13 @@
+{
+  "//": "Type-check only (Node runs the .ts directly via type stripping). Extends the tree's shared options (005 M18 D139). No @types/node is installed (zero dependencies); src/node-shim.d.ts declares the few node: APIs used.",
+  "extends": "../../../tsconfig.base.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "declaration": false,
+    "sourceMap": false,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "types": []
+  },
+  "include": ["src/**/*.ts", "gen/**/*.ts", "test/**/*.ts"]
+}

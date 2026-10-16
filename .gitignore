@@ -1,0 +1,9 @@
+# Bethesda data never enters git (006 M35 I152): extracted files live in ~/skyrim-data-extracted.
+*.hkx
+*.bsa
+*.esm
+*.esp
+*.nif
+*.dds
+target/
+node_modules/

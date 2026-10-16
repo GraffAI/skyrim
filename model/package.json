@@ -1,0 +1,14 @@
+{
+  "name": "skyrim-model",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Typed in-memory model of Skyrim SE Havok behavior/character/project packfiles (converted XML). Zero dependencies; runs on Node's native type stripping.",
+  "type": "module",
+  "engines": { "node": ">=23.6" },
+  "scripts": {
+    "gen": "node gen/generate.ts",
+    "gen:check": "node gen/generate.ts --check",
+    "test": "node --test test/",
+    "cli": "node src/cli.ts"
+  }
+}

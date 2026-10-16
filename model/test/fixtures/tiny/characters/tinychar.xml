@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="ascii"?>
+<!-- Hand-made test fixture (not game data). Only the fields the loader reads are present. -->
+<hkpackfile classversion="8" contentsversion="hk_2010.2.0-r1" toplevelobject="#0001">
+	<hksection name="__data__">
+		<hkobject name="#0003" class="hkbCharacterStringData" signature="0x655b42bc">
+			<hkparam name="animationNames" numelements="2">
+				<hkcstring>Animations\Wave.hkx</hkcstring>
+				<hkcstring>Animations\Nod.hkx</hkcstring>
+			</hkparam>
+			<hkparam name="name">TinyChar</hkparam>
+			<hkparam name="rigName">Character Assets\TinyRig.hkx</hkparam>
+			<hkparam name="ragdollName">&#9216;</hkparam>
+			<hkparam name="behaviorFilename">Behaviors\Main.hkx</hkparam>
+		</hkobject>
+		<hkobject name="#0002" class="hkbCharacterData" signature="0x300d6808">
+			<hkparam name="modelUpMS">(0.000000 0.000000 1.000000 0.000000)</hkparam>
+			<hkparam name="stringData">#0003</hkparam>
+			<hkparam name="scale">1.500000</hkparam>
+		</hkobject>
+		<hkobject name="#0001" class="hkRootLevelContainer" signature="0x2772c11e">
+			<hkparam name="namedVariants" numelements="1">
+				<hkobject>
+					<hkparam name="name">hkbCharacterData</hkparam>
+					<hkparam name="className">hkbCharacterData</hkparam>
+					<hkparam name="variant">#0002</hkparam>
+				</hkobject>
+			</hkparam>
+		</hkobject>
+	</hksection>
+</hkpackfile>

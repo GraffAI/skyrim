@@ -20,7 +20,9 @@ A clean-room engine that runs Skyrim Special Edition's stock data (ESM/BSA). The
 | `tools/bsa` | BSA (v105) extractor |
 | `tools/hkx` | HKX → XML conversion recipe and wrappers |
 | `tools/census` | the census scripts |
+| `tools/slice` | the first slice's variable and event names, measured (006 M44) |
 | `census/` | aggregate class/variable/event statistics |
 | `semantics/` | per-class notes (DIRTY-SIDE) |
 | `NOTES.md`, `TOOLCHAIN.md`, `SCOPE.md`, `ORACLE.md`, `REPORT.md` | the M35 records |
+| `docs/design/006-m44-oracle-first-slice.md` | the plugin's first slice (DIRTY-SIDE): locomotion + one melee attack, host-built MSVC, D353–D358, I186–I188 |
 | `ORACLE-HOST.md` | where the oracle runs: host cost and viability (2026-10-16); the host built is `infra/aws/docs/design/006-m38-aws-oracle-host.md` (M38) |

@@ -312,7 +312,118 @@ Each step is a command whose output goes into §8.
 
 ## 8. As built
 
-(empty until Part 1 runs; the host's hours and dollars go here, as M38 §8 does)
+The host's hours and dollars go here as Part 1 runs, as M38 §8 does.
+
+- **2026-10-31, the Address Library (D354), on `aubron-roam`, no host session.** The operator
+  minted a personal Nexus API key (lifetime Premium) and left it in a home-directory file; the
+  orchestrator stored it as the fleet secret `nexus-api-key` (`secret set`, stdin) and shredded
+  the file (`rm -P`). With Premium, `GET /v1/games/skyrimspecialedition/mods/32444/files/795954/download_link.json`
+  returns direct URLs (seven CDN mirrors), so the download is a script with the key in an
+  `apikey` header read from a 0600 file, never argv: `users/validate.json` → `is_premium: true`;
+  `files.json` lists the `MAIN` file **795954, "Address Library All in One (1.7.104.0) v13"**,
+  uploaded 2026-08-27T15:29:54Z, 6,640,552 bytes (Nexus's `size_in_bytes`; the download's
+  `ls -l` agrees). Four API calls of the 2,500 a day. The evidence file's "v13" label and the
+  file name, **not verified** there, are verified here.
+  - `shasum -a 256` of the archive: `be0c7c07fb63fd1c1403690d4797c7a8fdf8799118acceb605f285d7b0ee055f`
+  - `shasum -a 256` of `SKSE/Plugins/versionlib-1-7-104-0.bin` from it (2,263,132 bytes; first
+    four bytes `05 00 00 00`, format 5 as the evidence predicted): `8aab3dd251d135b849bd983f86a4a205c920fa3e81f8e30c0e63ccfef9423842`
+  - The archive carries 26 files: `versionlib-1-7-99-0.bin`, every 1.6.x and 1.5.x table too.
+    Only the 1.7.104 `.bin` goes onto the host.
+  - Kept, with a `SHA256SUMS`, under `~/skyrim-data-extracted/nexus/address-library-32444/` on
+    both Macs (`shasum -c` on `aubron-mini` → `OK` twice), the I152 directory; not the host yet
+    (exit 2 installs it). Nexus's own Premium download is the operator's one download (D354).
+
+- **2026-10-31, Part 1 on the host: exits 1, 2 and 3 met.** The operator said yes to the Build
+  Tools licence (D356) and terminated the retired on-demand host (M38 §10.1) before the session.
+  Three Opus agents built the pieces in parallel worktrees; the orchestrator ran the host. Shipped:
+  PR #280 (`nexus-api-key` declared), #283 (the wall gate I188, `clean=73 dirty=18 files=91`, and
+  the `skyrim-oracle` manifest row), #284 (`host-setup.ps1`'s `toolchain` and `skse` steps), #286
+  (the skse step's exit-code fix, below). The repository `GraffAI/skyrim-oracle` (private,
+  GPL-3.0) was created by the operator (`gh repo create`; the orchestrator's call was refused by
+  the harness) and holds commits `79ddaa0` (the scaffold) and `e0591bf` (the build fixes).
+  - **Host session**: `up` 22:51:47Z → `running`, ssh ok after 1 min (Spot, us-west-2c, no
+    capacity refusal); `down` at 23:44Z (the stop's end and the boot's dollars: the line below).
+    The Address Library `.bin` was `scp`'d to `C:\oracle\in\` first (hash on the host
+    `8aab3dd2…3842`, 2,263,132 bytes).
+  - **Exit 1, the toolchain** (`devx oracle setup`, the worktree's `host-setup.ps1`): eight
+    `already done:` lines, then `vs_BuildTools.exe exited 0` after **2 min 41 s** (22:53:48Z →
+    22:56:29Z; the evidence's 15–25 min estimate was pessimistic), MinGit 2.56.0.4, vcpkg at
+    `ee12231b…`; the banner through `vcvars64.bat`: **`cmake version 4.3.1-msvc1`**,
+    **`Microsoft (R) C/C++ Optimizing Compiler Version 19.51.36260 for x64`** (MSVC toolset
+    directory 14.51.36231). The "cl 19.51 **not verified**" of §2 is closed: it is 19.51.
+  - **Exit 2, SKSE** (the `skse` step): `skse64 v2.3.1 = 7ff865f4a27d6dc936ab5fd0533ff2d706c8f857;
+    common = 64e233c096735551f6ac9a773726a8a3960e46cd`; common and skse64 configured and built
+    with Ninja in **40 s** (22:57:15Z → 22:57:55Z); installed into the game dir:
+    `skse64_loader.exe` `8d8885f23f42ad7b6fb01e2e9a43df891892e50c22f56e83f922582bde7dc0c7`,
+    `skse64_1_7_104.dll` `2fc575e9adfd8aa0861e976ff79ce5bbf947e447e2aad0ef1465914bdca1547b`
+    (FileVersion 0.2.3.1), `skse64_steam_loader.dll`
+    `565be3e1eae24e96b8579c422b0bd891b3b5126a9f3f64e0214b3ab4845f7b80`,
+    `Data\SKSE\Plugins\versionlib-1-7-104-0.bin` `8aab3dd2…3842`. `Data\Scripts` `.pex` files
+    are **not** installed: a source build has only `.psc` sources and the plugin needs none.
+    **A bug, found and fixed**: ninja failed on `skse64_msstore_loader.exe` (LNK1327, mt.exe
+    "Values of attribute level not equal in different manifest snippets", `require_admin.manifest`)
+    and the step went on, installed the three files that had linked, and wrote its marker.
+    Measured cause: `cmake --build` returns **-1**, and `if errorlevel 1` means `>= 1`. PR #286
+    makes the check `if %errorlevel% neq 0` and builds only the three targets; verified on the
+    host: a test `.cmd` with the old check reached its end with exit 0, with the new check it
+    stopped with exit 1; the step re-run with its marker removed (23:05:12Z → 23:05:19Z) printed
+    `ninja: no work to do.` and the same four hashes.
+  - **Exit 2, the plugin** (`build.ps1` over ssh, as `runner`, Windows PowerShell 5.1): the
+    first build (22:59Z) failed in `main.cpp` with 100+ `C2039 'string': is not a member of 'std'`
+    in `REL/Version.h`, which the agent traced to two causes of its own, not the toolchain: NG's
+    headers rely on its precompiled header, so `SKSE/SKSE.h` must be included first; and
+    `SKSE_SUPPORT_PATCH_SAFETY=OFF` makes NG's `Trampoline.cpp` fail `/W4 /WX` (NG's CI never
+    builds with it off). With both fixed (`e0591bf`): the full CommonLib build **750 s**, 525
+    edges, 0 warnings; a plugin-only rebuild **19 s**. `build.ps1 -Install` 23:36:44Z →
+    23:36:54Z: `oracle.dll` 550,912 bytes, sha256
+    `c4ebee16009361aa6934bf6b21f46a6805a410ad4e4134536829633b9a2866c1` (the hash changes per
+    build: timestamps are embedded; the installed DLL at the session's end is
+    `6b5b7f979dfcb63aa1d106819ffbdc3a0c6ece8844795f53aeef9cc8edfe4f7c`), NG `adebc31dcfa6…`
+    (tag v15.4.0), `SkyrimSE.exe` FileVersion 1.7.104.0, and the four `Get-FileHash` lines.
+  - **Exit 3, it loads on this runtime only**: a scenario `skse-load` (`run.cmd`: wait for
+    Steam's logon, start `skse64_loader.exe` with `SteamAppId` set, 90 s, copy the logs, kill the
+    game) via `devx oracle run`, rc 0 each time, the game alive at 90 s. **The ok path**
+    (23:37Z): `SKSE\skse64.log` → `plugin oracle.dll (00000001 oracle 00010000) loaded correctly
+    (handle 1)`; `SKSE\oracle.log` → `oracle 0.1.0.0 (GraffAI/skyrim-oracle e0591bfccf1b),
+    CommonLibSSE-NG adebc31…`, `pinned runtime 1.7.104.0`, **`runtime 1.7.104.0 ok`** (I186).
+    **The refusal path** (`build.ps1 -Install -PinnedRuntime 1.7.99.0`, 23:39Z): `oracle.log` →
+    `[E] runtime 1.7.104.0 refused: this plugin is built for 1.7.99.0 only`; `skse64.log` →
+    `reported as incompatible during load 0`. Then the 1.7.104.0 build reinstalled and loaded
+    again (23:42Z, `runtime 1.7.104.0 ok`). Note what the refusal shows: SKSE 2.3.1 still said
+    `loading plugin "oracle"` with a wrong `compatibleVersions` — with the Address Library flag
+    set, SKSE never reads that list (§9 below); I186's enforcement is the check in `Load`.
+  - **Costs**: the host ran 22:51:51Z → `down` 23:45:28Z → `stopped` 23:52:05Z (the stop 6 min 37 s;
+    `status` → `stopped (Spot, g6.xlarge, us-west-2c)`, I165): **60 min ≈ $0.29** at $0.2875/h
+    (`status` at 23:43:48Z: `up 52 min`, `~$0.25`). The image `ami-0d9ad24c824907565` (≈ $2.59/month) is still kept: the
+    toolchain is now on the Spot host's disk, so M38 §10.1's re-image-and-drop can follow.
+
+## 8.1 Corrections from Part 1 (2026-10-31)
+
+Measured or read at the pins by the Part 1 agents; the record above is left as written and
+these lines take precedence.
+
+- **§2, the SKSE timestamp fallback**: commit `14db2124fa`, 47 min after `71f41da518` and in
+  `v2.3.1`, changed the window to `520128000 <= t < 1748217600` (1986-06-26 to 2025-05-26). A
+  Nix `SOURCE_DATE_EPOCH` of 1980 would not be rejected by it.
+- **§5 I186 / §2**: with `kVersionIndependent_AddressLibraryPostAE` set, SKSE 2.3.1 never reads
+  `compatibleVersions` (shown above: the wrong pin was still "loading"). The declared runtime is a
+  statement; the check in `SKSEPlugin_Load` is the enforcement.
+- **D354, the SKSE build**: it also needs `ianpatt/common` (no tags; `64e233c0`, 2026-02-19,
+  pinned), and the `.sln`/`CMakeLists.txt` line left it out. SKSE's `Data\Scripts` payload has no
+  source form a build can produce.
+- **D355, NG's version**: S1's `4ed481641f` was v13.x; the pin is v15.4.0 `adebc31d`. The V5
+  flag has no option or macro: it is the default of `PluginVersionData::versionIndependenceEx`
+  (PR #310; `PluginDeclaration` got it in PR #360). NG's `PluginDeclaration` can declare the
+  Address Library or a runtime list, not both, so the plugin uses the raw `PluginVersionData`.
+  `hkbVariableValueSet.h` exists at the pin; its value arrays are private (Part 3 reads by layout).
+- **D356, the prebuilt bundle**: `Prebuilt.cmake` uses it only when SE, AE and VR are all
+  enabled; an AE-only build compiles CommonLib from source, once (750 s here). "May serve" does
+  not hold. The VS 2022 component IDs are listed for 18.x on Microsoft's page: closed.
+- **D356, vcpkg's baseline**: NG's `builtin-baseline` `ee12231` is the tool checkout; its
+  `vcpkg-configuration.json` overrides the port baseline to `00c5775` (2026-08-25), the set NG's
+  CI compiles against (spdlog 1.17, fmt 12.2, directxtk 2026-05). The plugin repo copies that file.
+- **D354, SKSE's archive**: still **not verified** (the operator did not download it); the
+  built loader is the one in the game dir, by hash above.
 
 ## 9. What this record does not do
 

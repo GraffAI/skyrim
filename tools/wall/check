@@ -1,0 +1,70 @@
+#!/usr/bin/env python3
+# DIRTY-SIDE (D289): this file holds the wall's patterns, which name reverse-engineered sources.
+"""The wall (006 M44 I188): no clean file in projects/skyrim names the plugin, its repository
+or CommonLib.
+
+Every file `git ls-files` tracks in the zone is read. A file whose first three lines carry the
+DIRTY-SIDE marker is exempt; any other text file matching the pattern below is an offender.
+Binary files (a NUL in the first 8 KiB) are skipped. Exit 0 and print `ok`, or exit 1 listing
+the offenders. Reads nothing but the tracked files; no game data.
+
+    python3 -I tools/wall/check          # from the zone directory, or from anywhere
+    python3 -I tools/wall/check --list   # every file's status: dirty, clean, binary, OFFENDS
+"""
+import os
+import re
+import subprocess
+import sys
+
+PATTERN = re.compile(r"CommonLibSSE|RE::|skyrim-oracle|SKSEPlugin")
+MARKER = "DIRTY-SIDE"
+ZONE = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+
+def status(path):
+    with open(os.path.join(ZONE, path), "rb") as f:
+        data = f.read()
+    if b"\0" in data[:8192]:
+        return "binary", None
+    text = data.decode("utf-8", errors="replace")
+    if MARKER in "\n".join(text.split("\n", 3)[:3]):
+        return "dirty", None
+    for n, line in enumerate(text.split("\n"), 1):
+        m = PATTERN.search(line)
+        if m:
+            return "OFFENDS", f"{n}: {m.group(0)}"
+    return "clean", None
+
+
+def main(argv):
+    if argv not in ([], ["--list"], ["-v"]):
+        print("usage: check [--list|-v]", file=sys.stderr)
+        return 2
+    verbose = bool(argv)
+    out = subprocess.run(["git", "ls-files", "-z", "--", "."], cwd=ZONE, check=True,
+                         capture_output=True).stdout
+    files = sorted(p for p in out.decode().split("\0") if p)
+    counts, offenders = {}, []
+    for p in files:
+        if not os.path.isfile(os.path.join(ZONE, p)):  # deleted in the worktree, or a submodule
+            continue
+        s, where = status(p)
+        counts[s] = counts.get(s, 0) + 1
+        if verbose:
+            print(f"{s:8} {p}" + (f"  ({where})" if where else ""))
+        if s == "OFFENDS":
+            offenders.append(f"{p}:{where}")
+    if verbose:
+        print(" ".join(f"{k}={counts[k]}" for k in sorted(counts)), f"files={sum(counts.values())}")
+    if offenders:
+        print(f"wall (I188): {len(offenders)} file(s) lack {MARKER} in their first three lines "
+              "and name the plugin, its repository or CommonLib:", file=sys.stderr)
+        for o in offenders:
+            print(f"  {o}", file=sys.stderr)
+        return 1
+    print("ok")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1:]))

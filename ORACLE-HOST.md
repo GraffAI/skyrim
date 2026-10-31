@@ -1,3 +1,5 @@
+> DIRTY-SIDE: §3's risks name the plugin's build dependency, CommonLibSSE-NG (reverse-engineered). The rest is host cost and viability.
+
 # ORACLE-HOST — where the oracle runner can live: cost and viability (2026-10-16)
 
 The host chosen from this research is designed in `infra/aws/docs/design/006-m38-aws-oracle-host.md` (006 M38).

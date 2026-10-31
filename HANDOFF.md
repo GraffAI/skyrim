@@ -1,3 +1,5 @@
+> DIRTY-SIDE: the state of the oracle plugin's work (006 M44), which builds on CommonLibSSE-NG, a reverse-engineered description of the game binary. Not for the clean implementation.
+
 # Handoff — `projects/skyrim`, the oracle host (006 M38, Spot since 2026-10-19) and the plugin's first slice (006 M44), state as of 2026-10-19 22:00Z
 
 Read first: `ORACLE.md` (the plugin design, DIRTY-SIDE), `ORACLE-HOST.md` (why a cloud host), the

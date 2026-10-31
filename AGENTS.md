@@ -7,8 +7,8 @@ A clean-room engine that runs Skyrim Special Edition's stock data (ESM/BSA). The
 
 - **No Bethesda data in git (I152).** Game install: `~/skyrim-se`. Extracted data and conversions:
   `~/skyrim-data-extracted`. The zone holds code, aggregate statistics and notes in our own words.
-- **Clean vs dirty (D289).** Anything informed by reverse-engineered sources (CommonLibSSE,
-  Nemesis/Pandora internals) says `DIRTY-SIDE` in its header. Clean code is written from specs.
+- **Clean vs dirty (D289).** Anything informed by reverse-engineered sources (the community's headers for the
+  game binary, Nemesis/Pandora internals) says `DIRTY-SIDE` in its header. Clean code is written from specs.
 - **Tools build in `nix shell`**, natively on Apple Silicon; no Wine, no global installs (D290).
 - **Steam credentials are the operator's.** An agent never asks for or types them; the operator runs
   `steamcmd +login <user> +quit` once, and agents reuse the cached session.
@@ -21,6 +21,7 @@ A clean-room engine that runs Skyrim Special Edition's stock data (ESM/BSA). The
 | `tools/hkx` | HKX → XML conversion recipe and wrappers |
 | `tools/census` | the census scripts |
 | `tools/slice` | the first slice's variable and event names, measured (006 M44) |
+| `tools/wall` | the wall gate (006 M44 I188): no unmarked file names the plugin or its sources |
 | `census/` | aggregate class/variable/event statistics |
 | `semantics/` | per-class notes (DIRTY-SIDE) |
 | `NOTES.md`, `TOOLCHAIN.md`, `SCOPE.md`, `ORACLE.md`, `REPORT.md` | the M35 records |

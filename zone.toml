@@ -5,8 +5,9 @@ kind  = "project"
 description = "clean-room engine for Skyrim SE data; first: behavior-graph reconnaissance"
 deps  = []
 # Run from this directory. Nothing here needs game files.
-# I152: no Bethesda file is tracked here.
+# I152: no Bethesda file is tracked here. 006 M44 I188: the wall (tools/wall/README.md).
 gates = ["! git ls-files . | grep -iE '\\.(hkx|bsa|esm|esp|nif|dds)$'",
+         "python3 -I tools/wall/check",
          "cd tools/bsa && nix shell --inputs-from ../../../.. nixpkgs#cargo nixpkgs#rustc -c cargo test --release -q",
          "bash -n tools/hkx/build_serde_hkx.sh", "bash -n tools/hkx/bulk_convert.sh", "bash -n tools/hkx/roundtrip_check.sh",
          'python3 -I -c "import ast, sys; ast.parse(open(sys.argv[1]).read())" tools/hkx/hkx_xml_canon.py',
@@ -20,6 +21,7 @@ gates = ["! git ls-files . | grep -iE '\\.(hkx|bsa|esm|esp|nif|dds)$'",
 # the cargo gate starts with `cd`, so it ran hosted and exited 127 on the first nightly
 # (2026-10-16 11:12Z). Both nix gates are local-only, like machines' `nix build`.
 hosted = ["! git ls-files . | grep -iE '\\.(hkx|bsa|esm|esp|nif|dds)$'",
+          "python3 -I tools/wall/check",
           "bash -n tools/hkx/build_serde_hkx.sh", "bash -n tools/hkx/bulk_convert.sh", "bash -n tools/hkx/roundtrip_check.sh",
           'python3 -I -c "import ast, sys; ast.parse(open(sys.argv[1]).read())" tools/hkx/hkx_xml_canon.py',
           "python3 -I tools/census/test_census.py",

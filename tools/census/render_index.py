@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# DIRTY-SIDE: renders semantics/INDEX.md from the DIRTY-SIDE notes, whose header names their sources.
 """Render projects/skyrim/semantics/INDEX.md: one row per class in census.json.
 
 Numeric columns (instances, files, per category) come from census/census.json. The

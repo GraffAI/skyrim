@@ -11,8 +11,8 @@ interpreting Skyrim's Havok Behavior graphs is. Nothing in it needs Windows or a
   (`steamcmd +login <user> +quit`); an agent never sees a Steam credential.
 - **D288** — Extracted data, conversions and XML dumps live in `~/skyrim-data-extracted`, outside git.
   The zone holds only our code, aggregate statistics and notes in our own words.
-- **D289** — Notes derived from reverse-engineered sources (CommonLibSSE, Nemesis/Pandora internals)
-  carry a **DIRTY-SIDE** header. A later clean implementation works from a spec, not from them.
+- **D289** — Notes derived from reverse-engineered sources (the community's headers for the game binary,
+  Nemesis/Pandora internals) carry a **DIRTY-SIDE** header. A later clean implementation works from a spec, not from them.
 - **D290** — Tools run natively on Apple Silicon, built in ephemeral `nix shell`s; no Wine, no global
   installs.
 

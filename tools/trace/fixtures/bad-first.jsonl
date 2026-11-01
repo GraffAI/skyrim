@@ -1,0 +1,13 @@
+{"f":0,"t":0.000000,"a":"00000014","g":0,"k":"graph","project":"ExampleProject","behavior":"Behaviors\\example.hkx","vars":{"Speed":"real","IsMoving":"bool"},"evts":["walkStart","walkStop","stepLeft"]}
+{"k":"run","game":"0.0.0.0","esm":[{"n":"Example.esm","bytes":10,"sha256":null}],"bsa":[],"scenario":{"name":"fixture"},"seed":null,"dt_fixed":null,"oracle":{"version":"0.0.0"}}
+{"f":0,"t":0.000000,"a":"00000014","g":0,"k":"frame","pos":[0,0,0],"rot":[0,0,0],"cell":"ExampleCell"}
+{"f":0,"t":0.000000,"a":"00000014","g":0,"k":"dt","dt":0.0166666675,"n":1}
+{"f":1,"t":0.016667,"a":"00000014","g":0,"k":"frame","pos":[0,1,0],"rot":[0,0,0],"cell":"ExampleCell"}
+{"f":1,"t":0.016667,"a":"00000014","g":0,"k":"dt","dt":0.0166666675,"n":1}
+{"f":1,"t":0.016667,"a":"00000014","g":0,"k":"in.var","n":"Speed","v":100,"via":"diff"}
+{"f":1,"t":0.016667,"a":"00000014","g":0,"k":"in.evt","s":0,"n":"WalkStart","ok":true}
+{"f":1,"t":0.016667,"a":"00000014","g":0,"k":"out.evt","s":0,"n":"stepLeft","p":""}
+{"f":1,"t":0.016667,"a":"00000014","g":0,"k":"out.evt","s":1,"n":"subGraphTag","p":""}
+{"f":1,"t":0.016667,"a":"00000014","g":0,"k":"out.var","n":"IsMoving","v":true,"prev":false}
+{"f":2,"t":0.033333,"a":"00000014","g":0,"k":"frame","pos":[0,2,0],"rot":[0,0,0],"cell":"ExampleCell"}
+{"f":2,"t":0.033333,"a":"00000014","g":0,"k":"dt","dt":0.0166666675,"n":1}

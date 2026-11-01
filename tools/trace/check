@@ -1,0 +1,231 @@
+#!/usr/bin/env python3
+"""The trace checker (006 M44 I187, as corrected in the record's section 8.1).
+
+A trace is JSON Lines in the format of ORACLE.md section 3 (3.1 the canonical form, 3.2 the
+record kinds and their keys). This reads one trace and holds it to I187: it carries only the
+section 3.2 keys, names from the graph's own dictionary, data-file names and values, and never
+an address or an offset. Exit 0 and print `ok` with the count of each kind, or exit 1 listing
+every offender (line number, rule, what was found). Standard library only; reads only its
+arguments.
+
+    python3 -I tools/trace/check <oracle.jsonl> [...]
+
+The rules, each with the line it came from:
+
+  - every line is one JSON object; the first is a `run` record (3.2: "header, first line");
+  - `k` is one of section 3.2's kinds;
+  - a record's keys are the common keys (`f t a g k`; `run` has only `k`) plus that kind's keys
+    from 3.2; the optional secondary index `i` (3.1) is allowed anywhere but `run`; a key
+    outside these fails, except the keys in EXTRA below, which are counted as warnings;
+  - `in.var`/`out.var` `n` is in the `vars` of the latest `graph` record for that actor and
+    graph; `in.evt` `n` is in its `evts`; an `out.evt` `n` outside `evts` is counted and
+    listed, not failed (8.1: the root graph's dictionary does not hold every tag a graph emits);
+    names are compared without regard to case, as the engine's own name strings are, and a
+    name that matches only in another case is counted and listed, not failed (measured: the
+    engine sends `TurnRight` to a graph whose dictionary says `turnRight`, and it is accepted);
+    `sm` and `node` fail without a node dictionary to check them against (3.2 has none yet);
+    a name record before any `graph` record for its actor and graph fails;
+  - no string value anywhere (keys of dictionaries included) matches 0x[0-9A-Fa-f]{6,};
+  - no name field is an 8-or-more-digit decimal;
+  - `f` never decreases through the file, and each actor and graph's `frame` records strictly
+    increase.
+"""
+import json
+import re
+import sys
+from collections import Counter
+
+COMMON = ("f", "t", "a", "g", "k")
+# ORACLE.md section 3.2, the extra keys of each kind; `same` is the short form of `nodes`.
+KINDS = {
+    "run": ("game", "esm", "bsa", "scenario", "seed", "dt_fixed", "oracle"),
+    "graph": ("project", "behavior", "vars"),
+    "frame": ("pos", "rot", "cell"),
+    "dt": ("dt", "n"),
+    "in.var": ("n", "v", "via"),
+    "in.evt": ("s", "n", "ok"),
+    "action": ("s", "act", "idle", "evt", "ok"),
+    "out.evt": ("s", "n", "p"),
+    "out.var": ("n", "v", "prev"),
+    "state": ("sm", "st", "id", "tis"),
+    "nodes": ("ids", "same"),
+    "clip": ("node", "anim", "lt", "w"),
+    "motion": ("dp", "dr"),
+}
+# Keys the recorder writes today that section 3.2's table does not list (record 8.1): allowed,
+# reported as warnings until ORACLE.md 3.2 lists them.
+EXTRA = {"graph": ("evts",)}
+# Fields that hold a name (a graph's string data, a node's name, a data file, a cell's editor ID).
+NAME_FIELDS = ("n", "sm", "st", "node", "act", "evt", "anim", "project", "behavior", "cell")
+ADDRESS = re.compile(r"0x[0-9A-Fa-f]{6,}")
+LONG_DECIMAL = re.compile(r"^[0-9]{8,}$")
+
+
+def folded(names):
+    """A dictionary's names by their case-folded form (the first spelling of each is kept)."""
+    out = {}
+    for name in names:
+        if isinstance(name, str):
+            out.setdefault(name.casefold(), name)
+    return out
+
+
+def lookup(d, n):
+    """The dictionary's spelling of n, or None if n is not in it in any case."""
+    if d is None or not isinstance(n, str):
+        return None
+    return d.get(n.casefold())
+
+
+def strings(value, path):
+    """Every string in value, keys of objects included, with where it was found."""
+    if isinstance(value, str):
+        yield path, value
+    elif isinstance(value, list):
+        for i, v in enumerate(value):
+            yield from strings(v, f"{path}[{i}]")
+    elif isinstance(value, dict):
+        for k, v in value.items():
+            yield f"{path}{{key}}", k
+            yield from strings(v, f"{path}.{k}")
+
+
+def names(rec):
+    """Every name in rec: the name fields at any depth, the `vars` keys, `evts` and `ids` entries."""
+    def walk(value, path):
+        if isinstance(value, dict):
+            for k, v in value.items():
+                if k in NAME_FIELDS and isinstance(v, str):
+                    yield f"{path}.{k}", v
+                elif k == "vars" and isinstance(v, dict):
+                    for name in v:
+                        yield f"{path}.vars{{key}}", name
+                elif k in ("evts", "ids") and isinstance(v, list):
+                    for i, name in enumerate(v):
+                        if isinstance(name, str):
+                            yield f"{path}.{k}[{i}]", name
+                else:
+                    yield from walk(v, f"{path}.{k}")
+        elif isinstance(value, list):
+            for i, v in enumerate(value):
+                yield from walk(v, f"{path}[{i}]")
+    yield from walk(rec, "")
+
+
+def check(path):
+    bad, warn = [], Counter()
+    kinds = Counter()
+    outside = Counter()            # out.evt names outside the graph's evts
+    cased = Counter()              # names that match the dictionary only in another case
+    graphs = {}                    # (a, g) -> (vars set, evts set or None)
+    last_f, last_frame = None, {}
+    with open(path, encoding="utf-8") as fh:
+        for ln, line in enumerate(fh, 1):
+            line = line.rstrip("\n")
+            try:
+                rec = json.loads(line)
+            except ValueError as e:
+                bad.append((ln, "json", str(e)))
+                continue
+            if not isinstance(rec, dict):
+                bad.append((ln, "json", "not an object"))
+                continue
+            k = rec.get("k")
+            if ln == 1 and k != "run":
+                bad.append((ln, "first", f"the first record is {k!r}, not 'run'"))
+            if k not in KINDS:
+                bad.append((ln, "kind", repr(k)))
+                continue
+            kinds[k] += 1
+            allowed = set(("k",) + KINDS[k]) if k == "run" else set(COMMON + KINDS[k] + ("i",))
+            for key in rec:
+                if key in allowed:
+                    continue
+                if key in EXTRA.get(k, ()):
+                    warn[f"{k}.{key}"] += 1
+                else:
+                    bad.append((ln, "key", f"{k} has {key!r}"))
+            for where, s in strings(rec, ""):
+                if ADDRESS.search(s):
+                    bad.append((ln, "address", f"{where} = {s!r}"))
+            for where, s in names(rec):
+                if LONG_DECIMAL.match(s):
+                    bad.append((ln, "decimal", f"{where} = {s!r}"))
+            if k == "run":
+                continue
+            f = rec.get("f")
+            if not isinstance(f, int) or isinstance(f, bool):
+                bad.append((ln, "frame", f"f = {f!r}"))
+            else:
+                if last_f is not None and f < last_f:
+                    bad.append((ln, "frame", f"f {f} after f {last_f}"))
+                last_f = f
+            ag = (rec.get("a"), rec.get("g"))
+            if k == "frame" and isinstance(f, int):
+                if ag in last_frame and f <= last_frame[ag]:
+                    bad.append((ln, "frame", f"frame f {f} after frame f {last_frame[ag]} for {ag}"))
+                last_frame[ag] = f
+            if k == "graph":
+                v = rec.get("vars")
+                e = rec.get("evts")
+                graphs[ag] = (folded(v) if isinstance(v, dict) else {},
+                              folded(e) if isinstance(e, list) else None)
+                continue
+            n = rec.get("n")
+            if k in ("in.var", "out.var", "in.evt", "out.evt"):
+                if ag not in graphs:
+                    bad.append((ln, "name", f"{k} {n!r} before any graph record for {ag}"))
+                    continue
+                gv, ge = graphs[ag]
+                d = gv if k in ("in.var", "out.var") else ge
+                hit = lookup(d, n)
+                if hit is None:
+                    if k == "out.evt":
+                        outside[n] += 1
+                    else:
+                        what = "vars" if d is gv else "evts"
+                        bad.append((ln, "name", f"{k} {n!r} is not in the graph's {what}"))
+                elif hit != n:
+                    cased[f"{k} {n} ({hit})"] += 1
+            for key in ("sm", "node"):
+                if key in rec:
+                    bad.append((ln, "name", f"{k} {key} {rec[key]!r}: the graph record has no node dictionary"))
+    return kinds, bad, warn, outside, cased
+
+
+def main(argv):
+    if not argv or any(a.startswith("-") for a in argv):
+        print("usage: python3 -I tools/trace/check <trace.jsonl> [...]", file=sys.stderr)
+        return 2
+    rc = 0
+    for path in argv:
+        try:
+            kinds, bad, warn, outside, cased = check(path)
+        except OSError as e:
+            print(f"{path}: {e}", file=sys.stderr)
+            return 2
+        counts = " ".join(f"{k}={kinds[k]}" for k in KINDS if kinds[k])
+        for key, c in sorted(warn.items()):
+            print(f"{path}: warn: {key} is not in ORACLE.md 3.2 ({c} record(s); allowed, record 8.1)")
+        if outside:
+            listed = " ".join(f"{n}={c}" for n, c in sorted(outside.items()))
+            print(f"{path}: out.evt outside the graph's evts: {sum(outside.values())} record(s), "
+                  f"{len(outside)} name(s): {listed}")
+        if cased:
+            listed = " ".join(f"{n}={c}" for n, c in sorted(cased.items()))
+            print(f"{path}: names matching the graph's dictionary only in another case: "
+                  f"{sum(cased.values())} record(s): {listed}")
+        if bad:
+            rc = 1
+            for ln, rule, what in bad[:200]:
+                print(f"{path}:{ln}: {rule}: {what}")
+            if len(bad) > 200:
+                print(f"{path}: ... {len(bad) - 200} more")
+            print(f"{path}: FAIL {len(bad)} offender(s); {counts}")
+        else:
+            print(f"{path}: ok {counts}")
+    return rc
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1:]))

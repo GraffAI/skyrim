@@ -22,6 +22,7 @@ A clean-room engine that runs Skyrim Special Edition's stock data (ESM/BSA). The
 | `tools/census` | the census scripts |
 | `tools/slice` | the first slice's variable and event names, measured (006 M44) |
 | `tools/wall` | the wall gate (006 M44 I188): no unmarked file names the plugin or its sources |
+| `tools/trace` | `check`, the trace checker (006 M44 I187: ORACLE.md §3.2's kinds and keys, names in the trace's own `graph`, no address-like string); `test` runs it over the synthetic `fixtures/`; run it on every trace before it is kept |
 | `census/` | aggregate class/variable/event statistics |
 | `semantics/` | per-class notes (DIRTY-SIDE) |
 | `NOTES.md`, `TOOLCHAIN.md`, `SCOPE.md`, `ORACLE.md`, `REPORT.md` | the M35 records |

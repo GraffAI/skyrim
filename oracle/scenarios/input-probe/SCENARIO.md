@@ -4,7 +4,7 @@ Run with no human: `devx oracle run projects/skyrim/oracle/scenarios/input-probe
 ~/skyrim-data-extracted/traces/<date>-input-probe --timeout 10`. The oracle plugin loads the
 operator's `loco1hm` save, forces the third-person camera, waits until the load has finished plus
 60 input polls (frame 0, D393), plays `input.jsonl`, closes its trace at `end` (frame 800) and quits the game
-(D395). `run.cmd` sets `bAlwaysActive=1` first (D396). Nothing is saved; the save's sha256 is taken
+(D395). `devx/oracle/run.ps1` sets `bAlwaysActive=1` first (D396). Nothing is saved; the save's sha256 is taken
 before and after.
 
 The script (written by `../make-input.py`; frames are input polls, about 60 a second):

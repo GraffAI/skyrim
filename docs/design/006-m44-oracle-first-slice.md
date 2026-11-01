@@ -553,6 +553,66 @@ The host's hours and dollars go here as Part 1 runs, as M38 §8 does.
     `NotifyAnimationGraph` slot; `dt` frame by frame; whether events the graph consumes silently
     reach the sink; the `TESObjectREFR`/`Character` hooks on NPCs (0 player calls, as expected).
 
+- **2026-11-01, Part 1.5 built and measured: `loco-1hm` runs with no human.** One Opus agent,
+  01:11Z–01:59Z on the host (builds and 8 runs, ≈ 48 min ≈ $0.23), on the session begun 00:28Z.
+  `GraffAI/skyrim-oracle` `main` `aec8402..d8e06ca`: `38beb05` (the poll hook, the injector, the
+  clock, the side file), `71ef05f` (`tools/input-stats.py`, `tools/trace-coverage.py`, the new IDs
+  in `addrlib-check`, all present in the 1.7.104 table), `7bc1d8d`/`d8e06ca` (NOTES §17–21,
+  README). `world`: `projects/skyrim/oracle/scenarios/{input-probe,loco-1hm-scripted}/` and
+  `make-input.py` (this PR). The wall: `clean=86 dirty=19`, `ok`.
+  - **D388, the hook**: `oracle.log` prints `PollInputDevices` (68617)'s first 10 bytes
+    `48 89 5C 24 10 48 89 74 24 18`, then `input hook installed (prologue ok)`. `grep -c 'hook
+    installed'` → **6** every run (I204): the three `NotifyAnimationGraph` slots,
+    `hkbBehaviorGraph.Update`, `ModifyAnimationUpdateData`, the input context hook. D392's reader
+    is an event sink on `BSInputDeviceManager` after `PlayerControls` (sink index 5 vs 2), not a
+    hook. **Cost not foreseen**: NG's `install_context_hook` needs `SKSE_SUPPORT_XBYAK` (forced
+    in CMake; one CommonLib rebuild, ~12 min), and it pulls `windows.h` into `SKSE/SKSE.h`, whose
+    macros break NG's headers — `src/skse.h` fixes the include order.
+  - **The probe's three answers** (`input-probe`, side file `oracle.input.jsonl`): (1) **gamepad
+    events with no pad are used**: `gamepad connected false, enabled false`, yet `moveInputVec` =
+    (0, 0.5) from the first injected frame; at (0, 0.5) the player moved 100.5 units in 60 frames
+    (side-file `Speed` 116.78), at (0, 1) 262.9 units (343.46); `moveStart`/`moveStop` arrived as
+    `in.evt`; the keyboard `Forward` (0x11) works too — **D389 holds**, no digital fallback.
+    (2) **The thumbstick, button and mouse-move queue paths are live on 1.7.104**: no crash.
+    (3) **A written heading turns the player but gives `TurnDelta` 0 and no turn events**, where
+    real look input while walking gives `TurnDelta` −1.35 and engine-sent `TurnRight`/
+    `turnRightSlow`: **D391 flips** — and its named fallback, the right stick, turns only 2.7°/s
+    with no pad (`lookInputVec` 0.015 at full deflection), so the agent added `look_via = "mouse"`:
+    mouse-move events sized from the remaining **camera** yaw (~22 counts per degree), tracking
+    within ~6–13°, `TurnDelta` reading ±90/±180. `look_via` is an `oracle.toml` key (`heading`
+    default, `stick`, `mouse`); the scripted scenario uses `mouse`.
+  - **Quit (D395)**: both paths exit 0 — `qqq` 1.2–1.6 s after `oracle.status` (5 runs),
+    `Main.quitGame` 1.6 s (1 run); `qqq` kept. The plugin's own fallbacks (the other path at 15 s,
+    `TerminateProcess` at 25 s) and the 30 s kill (124) never fired; the refusal (`done`=3) and 124
+    paths are written, **never triggered**.
+  - **The scripted runs** (loco3, loco4, at `7bc1d8d`): script f 0–2400 (2,401 polls, ~40 s),
+    trace 2,600 / 2,599 frames, `trace-stats` → `no problems`; frame 0 came 144 polls after
+    `kPostLoadGame` plus 60 settle polls (engine frame 489 / 494). **380 of 380 scripted lines
+    injected at their frame, `input dropped` 0** (I205). `in.evt`, all engine-sent: `moveStart
+    moveStop CyclicFreeze CyclicCrossBlend TurnRight turnStop TurnLeft SprintStart SprintStop
+    WeapEquip attackStart attackRelease Unequip`. **The attack**: `in.evt attackStart` at f 2123 /
+    2122, then `out.evt` `PowerAttack_Start_end HeadTrackingOff preHitFrame weaponSwing HitFrame
+    CastOKStart AttackWinStart AttackWinEnd attackStop` — `weaponSwing` → `HitFrame` →
+    `AttackWinStart` → `AttackWinEnd` in order (§7 step 5). **Twice-run comparison**
+    (`trace-coverage --compare`) → **EQUAL** (§7 step 6, with no human). `moveInputVec` plateaus
+    (the side file; `Speed` as `in.var` is Part 3): (0, ±0.5)/(±0.5, 0) ≈ 218 units each with
+    side-file `Speed` 116.78; (0, 1) running 343.46; sprinting 500. **`done`=0**, the game's exit
+    code 0, 1.3–1.5 s after the trace closed; `run.cmd` 59 s per run. `loco1hm.ess` sha256
+    `6426ca27…4445` before and after all 8 runs.
+  - **The room**: §3's "flat empty interior" is not: a pool west of the spawn, walls ~250 units
+    east and ~1,200–1,300 north (loco1 walked into a wall, loco2 ran into the pool: `SwimStart`,
+    no attack); a scratch run mapped the floor, and the committed route keeps the open lane north
+    of the spawn (run 2 s, two 360° circles at 3°/frame, a look-round, sprint north; the sprint's
+    last ~0.8 s is against the north wall with `Speed` 500 and `IsSprinting` true).
+  - **D396**: `bAlwaysActive=1` set in the runner's `Skyrim.ini` by the scenario's interim
+    `run.cmd` (the original at `C:\oracle\in\ini-backup\Skyrim.ini`); its effect **not verified**
+    (no run without it). The `done` codes come from the scenario's `wait-game.ps1` until Part 4
+    moves them into `run.ps1`.
+  - **Not verified**: whether the handlers read the user-event name or the code (both set); why
+    the right stick is so slow with no pad; that the poll runs on the main thread (its thread id
+    differs from the one SKSE's messages ran on); the variable coverage of §7 step 5 (Part 3).
+    Traces: `~/skyrim-data-extracted/traces/2026-11-01-m44-part15/` on `aubron-roam` (D358).
+
 ## 8.1 Corrections from Part 1 (2026-10-31)
 
 Measured or read at the pins by the Part 1 agents; the record above is left as written and
@@ -594,6 +654,21 @@ Corrections from Part 2 (2026-11-01):
   third-person save exists.
 - **D357's quit path** is no longer **not verified**: `Main::quitGame = true` exits with code 0
   in ~1.5 s on 1.7.104.
+
+Corrections from Part 1.5 (2026-11-01):
+
+- **D391 flipped**, and past its own fallback: the right stick is unusable with no pad; mouse-move
+  input sized from the remaining **camera** yaw is what turns the player with `TurnDelta` and turn
+  events (standing look input turns only the camera, so the tracked angle must be the camera's).
+  `look_via = "mouse"` is the scenario's setting; `look` targets are camera yaws relative to frame 0.
+- **§3**: the start is not a flat empty interior (a pool and walls); the scripted run is ~40 s, not
+  ~90 s. The variables and events it exercises are the same.
+- **D395**: the plugin carries its own fallbacks (the other quit path at 15 s, `TerminateProcess`
+  at 25 s); until Part 4, `done` is written by the scenario's `wait-game.ps1`, not `run.ps1`.
+- **§7 step 0**: "`Speed` at two plateaus in the trace" cannot be shown before Part 3 (it was
+  shown in the side file); the "run.cmd-free" probe needs a `run.cmd` until Part 4.
+- **D388's cost**: the context hook needs `SKSE_SUPPORT_XBYAK` (a CommonLib rebuild) and an
+  include-order fix for `windows.h`; neither the evidence nor §4.1 said so.
 
 ## 9. What this record does not do
 

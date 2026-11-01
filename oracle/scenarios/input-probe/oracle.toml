@@ -1,0 +1,7 @@
+# 006 M44 Part 1.5, section 7 step 0: the input probe (SCENARIO.md). Read by the oracle plugin.
+name = "input-probe"
+save = "loco1hm"            # the operator's save (record section 8), on the host only
+third_person = true         # the save loads in first person
+duration_s = 90             # a backstop: the script's `end` closes the trace at about 14 s of frames
+quit = true
+quit_via = "qqq"            # D395's first choice; "quitGame" is the other

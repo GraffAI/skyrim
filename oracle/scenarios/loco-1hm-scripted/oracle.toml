@@ -1,0 +1,9 @@
+# 006 M44 Part 1.5: the loco-1hm scenario of record section 3, scripted (SCENARIO.md). Read by the
+# oracle plugin.
+name = "loco-1hm-scripted"
+save = "loco1hm"            # the operator's save (record section 8), on the host only
+third_person = true         # the save loads in first person
+duration_s = 120            # a backstop: the script's `end` is at frame 2400, about 40 s
+quit = true
+quit_via = "qqq"
+look_via = "mouse"         # D391 flipped: a written heading gave no TurnDelta, and the right stick turns 2.7 deg/s with no pad (SCENARIO.md)

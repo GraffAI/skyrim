@@ -45,6 +45,9 @@ address or `*.ts.net` name belongs here (this zone is mirrored).
   its first three lines or keep the names out.
 - **Secrets** (fleet; `infra/machines/bin/secret ls`): `aws-oracle-key-id`/`-secret-key`,
   `tailscale-oracle-authkey`, `tailscale-policy-oauth-id`/`-secret`, **`nexus-api-key`**.
+- **Scenarios (world):** `projects/skyrim/oracle/scenarios/input-probe` (D388's probe and the
+  three answers) and `loco-1hm-scripted` (`oracle.toml` with `look_via = "mouse"`, `input.jsonl`
+  made by `make-input.py`, `SCENARIO.md`); `devx/oracle/scenarios/{game-launch,skse-load,game-hold}`.
 - **Unmerged at handoff:** this file and M44 §8/§8.1 on branch `claude/kickoff-part-1`; the
   `skse-load` scenario on `claude/skse-load-scenario` — both shipping as this is written.
 
@@ -62,12 +65,19 @@ Human look: Moonlight (in `/Applications/Nix Apps`) → `oracle-host`. Never RDP
 
 ## Open, in order
 
-1. **M44 Part 1.5 — input and control** (§4.1, D388–D396, I204–I206; an agent is on it as this is
-   written, 2026-11-01 ~01:20Z; its state is in `skyrim-oracle` NOTES §17+ and the M44 §8 line it
-   adds). **Part 2 is built** (M44 §8, 2026-11-01): `run`/`graph`/`frame`/`dt`/`in.evt`/`out.evt`,
-   the save loads unattended, the game quits by itself; its "real input" exit waits on Part 1.5.
-   The save: `Saves\loco1hm.ess` (2,491,946 bytes, sha256 `6426ca27…4445`, first person; the
-   scenario sets `third_person = true`). `tools/slice/names.json` (the 53 variables and 88 events the exit checks)
+1. **Parts 1, 1.5 and 2 are built** (M44 §8, 2026-11-01): `devx oracle run
+   projects/skyrim/oracle/scenarios/loco-1hm-scripted --out <dir> --timeout 10` runs the §3
+   scenario with **no human** — the save loads, 380 scripted inputs go in, `attackStart` →
+   `weaponSwing … AttackWinEnd` in order, the game quits, `done`=0, two runs EQUAL. The save:
+   `Saves\loco1hm.ess` (2,491,946 bytes, sha256 `6426ca27…4445`, first person; the scenario sets
+   `third_person = true`; the room has a pool and walls, the route avoids them). Next:
+   **Part 3** (variables by diff: `in.var`/`out.var` from `hkbVariableValueSet` by layout — its
+   arrays are private at the pin — and the 53 names checked; `Speed` plateaus then show in the
+   trace), **Part 4** (`run.ps1`'s SKSE branch: Steam wait, I186 version check, `bAlwaysActive`,
+   `%ORACLE_SCENARIO%`, the end per D395 with `done` 0/124/3 — the scenarios' interim `run.cmd`/
+   `wait-game.ps1`/`set-ini.ps1` are the working draft; `tools/trace/check` with fixtures,
+   allowing `graph.evts` and `out.evt` names outside the root dictionary), **Part 5** (the exit,
+   §7, hours and dollars, this file). `tools/slice/names.json` (the 53 variables and 88 events the exit checks)
    is not written yet; its README says so. Part 2 or Part 5 writes it from the evidence.
 2. **Parts 3–5** as the record says (Part 3 reads `hkbVariableValueSet` by layout: its arrays are
    private at the pin; Part 4's checker allows `graph.evts` and `out.evt` names outside the root

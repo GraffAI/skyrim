@@ -499,6 +499,60 @@ The host's hours and dollars go here as Part 1 runs, as M38 §8 does.
     also in that directory, from Steam's cloud (`steam_autocloud.vdf`): the operator's own.
     Host: `down` 00:12Z → `stopped` 00:19Z; the session 00:06:13Z → 00:19Z ≈ 13 min ≈ **$0.06**.
 
+- **2026-11-01, Part 2 built and measured: events both ways and the frame, unattended.** One Opus
+  agent, five runs 00:46Z–01:05Z on the host session that began 00:28Z (the session also served
+  the Part 1.5 research; its `down` is recorded with Part 1.5). `GraffAI/skyrim-oracle` `main`
+  `e0591bf..aec8402`: `a0175d5` (the writer, the `oracle.toml` reader, file hashes), `9dae62f`
+  (hooks, capture, run control), `58715ca` (`tools/trace-stats.py`, `tools/addrlib-check.py`),
+  `aded25f`/`aec8402` (NOTES §11–16, README). I186 unchanged: capture starts after `runtime
+  1.7.104.0 ok`.
+  - **Hooks, all vtable slot writes** (no code patches, no offsets into functions; each slot checked
+    to point into `.text` before the write; each ID present in the 1.7.104 table by
+    `tools/addrlib-check.py`, with 21890 shown absent as the control; the player's live vptrs
+    matched at `kDataLoaded`): `NotifyAnimationGraph` slot 0x01 on `VTABLE_TESObjectREFR[3]`
+    (190265), `VTABLE_Character[3]` (207892), `VTABLE_PlayerCharacter[3]` (208046) → `in.evt` with
+    the return value as `ok`; `hkbBehaviorGraph::Update` slot 0x05 (220287), filtered to the root
+    of the player's graph 0 → the frame boundary and `dt`; `PlayerCharacter[0]` slot 0x79
+    (`ModifyAnimationUpdateData`) → the `BSAnimationUpdateData` cross-check, to `oracle.log` only
+    (7,191 calls; min/mean/max `deltaTime` 0.016333/0.016720/0.036111 s, equal to the `Update`
+    timesteps as totals, **not** compared frame by frame); a `BSAnimationGraphEvent` sink on
+    `graphs.front()` → `out.evt`, re-attached by a 250 ms game-thread poll after a rebuild.
+    **Not hooked:** `UpdateAnimationGraphManager` (32899) is non-virtual (an entry detour or a
+    call-site offset); `action` records skipped for the same reason (§3 allowed it).
+  - **Control, measured** (the final run's log): `main menu open; loading 'loco1hm' in 5 s`
+    01:03:24Z → `'load loco1hm' issued (console: Script::CompileAndRun)` 01:03:30Z →
+    `kPostLoadGame (success true)` ~1.6 s later; after `duration_s`, `oracle.status` beside the
+    trace: `closed reason=duration frames=7189`; `quit requested (Main.quitGame = true)`
+    01:05:31Z → the process exited 01:05:33Z, **exit code 0**. The fallbacks (`qqq` at 20 s,
+    `TerminateProcess` at 40 s) never fired. **D357's quit path is verified**: `Main::quitGame`.
+    `loco1hm.ess` has the same sha256 (`6426ca27…4445`) before and after every run (`certutil`).
+  - **The capture.** Run 1 (load, 60 s standing): 3,604 frames, **0 `in.evt`, 0 `out.evt`** — the
+    save loads in **first person** (`activeGraph 1 (FirstPerson)`), and nothing reaches the
+    third-person graph. With `third_person = true` and nothing pressed: the only event is
+    `out.evt` `PickNewIdle` every 9–11 s. With the agent's test aids (`steps`: console
+    `player.sae attackStart`, and `oracle:draw`/`oracle:sheathe` through `DrawWeaponMagicHands`):
+    `in.evt` `IdleForceDefaultState`, `WeapEquip`, `attackStart` ×3, `Unequip`, all `ok:true`;
+    an `attackStart` sent while sheathed → `ok:false`; 37 distinct `out.evt` names; each attack's
+    sequence identical, including after two graph rebuilds: `PowerAttack_Start_end
+    HeadTrackingOff preHitFrame weaponSwing HitFrame CastOKStart AttackWinStart AttackWinEnd
+    attackStop …`. The final run at `aec8402`: 7,189 frames, 3 `graph`, 7 `in.evt`, 110
+    `out.evt`, `tools/trace-stats.py` → `no problems`.
+  - **`graph`**: **301 variables** (as §3 says), 1,217 events, root `Behaviors\0_Master.hkx`,
+    written as `evts` (ORACLE.md §3.2's `graph` row lacks the event dictionary §3 asks for).
+  - **Frames**: 7,191 in 120.2 s (59.8/s); `dt` min 0.0163333, median 0.0166667, max 0.0361111;
+    `dt.n` is always 1 (no main-loop hook). **Cost**: ~14.0 µs of hook time per frame, the writer
+    thread not counted; ~0.9 MB of trace per minute.
+  - **`run`**: every `Data\*.bsa` listed with size, only `*Animations*` hashed; the ESM/ESP list
+    hashed. Hashing all 15.7 GB was skipped (~2 min cold, an estimate). Which BSAs the game opened
+    is **not verified**.
+  - **Part 2's stated exit** ("a capture of `loco-1hm` shows `attackStart` in and `weaponSwing`
+    out") is met with console-provoked events, which the `run` record declares (`steps`); with
+    real input it is Part 1.5's step 0. Traces and logs of the five runs: `~/skyrim-data-extracted/
+    traces/2026-11-01-m44-part2/` on `aubron-roam` (6.1 MB; D358).
+  - **Not verified**: that an `attackStart` from real input arrives through the same
+    `NotifyAnimationGraph` slot; `dt` frame by frame; whether events the graph consumes silently
+    reach the sink; the `TESObjectREFR`/`Character` hooks on NPCs (0 player calls, as expected).
+
 ## 8.1 Corrections from Part 1 (2026-10-31)
 
 Measured or read at the pins by the Part 1 agents; the record above is left as written and
@@ -526,6 +580,20 @@ these lines take precedence.
   CI compiles against (spdlog 1.17, fmt 12.2, directxtk 2026-05). The plugin repo copies that file.
 - **D354, SKSE's archive**: still **not verified** (the operator did not download it); the
   built loader is the one in the game dir, by hash above.
+
+Corrections from Part 2 (2026-11-01):
+
+- **ORACLE.md §3.2's `graph` row** has no event dictionary; §3 of this record asks for one. The
+  plugin writes it as `evts`; Part 4's checker allows that key.
+- **I187 as written** ("any `n`/`sm`/`node` not in the trace's own `graph` dictionary" fails)
+  would reject a real trace: `out.evt` `IdleOffsetStop` is not among the root graph's 1,217 event
+  names (sub-graph or engine-tagged events). The checker needs a rule for `out.evt` names outside
+  the root dictionary (allow, and count them) rather than a failure.
+- **§3 "load a save, then stand 3 s" assumes third person**; the operator's save loads in first
+  person. The scenario sets `third_person = true` (the plugin forces the camera) until a
+  third-person save exists.
+- **D357's quit path** is no longer **not verified**: `Main::quitGame = true` exits with code 0
+  in ~1.5 s on 1.7.104.
 
 ## 9. What this record does not do
 

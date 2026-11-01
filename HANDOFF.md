@@ -62,12 +62,16 @@ Human look: Moonlight (in `/Applications/Nix Apps`) → `oracle-host`. Never RDP
 
 ## Open, in order
 
-1. **M44 Part 2** — events both ways and the frame (`run`, `graph`, `frame`, `dt`, `in.evt`,
-   `out.evt`, the canonical writer). The operator's save for `loco-1hm` **exists** on the host:
-   `Saves\loco1hm.ess` (2,491,946 bytes, sha256 `6426ca27…4445`, made 2026-11-01 00:10Z at
-   Moonlight in `qasmoke` with an iron sword; M44 §8). `tools/slice/names.json` (the 53 variables and 88 events the exit checks)
+1. **M44 Part 1.5 — input and control** (§4.1, D388–D396, I204–I206; an agent is on it as this is
+   written, 2026-11-01 ~01:20Z; its state is in `skyrim-oracle` NOTES §17+ and the M44 §8 line it
+   adds). **Part 2 is built** (M44 §8, 2026-11-01): `run`/`graph`/`frame`/`dt`/`in.evt`/`out.evt`,
+   the save loads unattended, the game quits by itself; its "real input" exit waits on Part 1.5.
+   The save: `Saves\loco1hm.ess` (2,491,946 bytes, sha256 `6426ca27…4445`, first person; the
+   scenario sets `third_person = true`). `tools/slice/names.json` (the 53 variables and 88 events the exit checks)
    is not written yet; its README says so. Part 2 or Part 5 writes it from the evidence.
-2. **Parts 3–5** as the record says; Part 4 writes `run.ps1`'s SKSE branch (Steam wait, the
+2. **Parts 3–5** as the record says (Part 3 reads `hkbVariableValueSet` by layout: its arrays are
+   private at the pin; Part 4's checker allows `graph.evts` and `out.evt` names outside the root
+   dictionary, §8.1); Part 4 writes `run.ps1`'s SKSE branch (Steam wait, the
    version check I186, the launch, the end of the run per D357 — `skse-load/run.cmd` is the
    working draft) and `tools/trace/check`; Part 5 the exit and §8's hours and dollars.
 3. **The operator's open decisions:** (a) the public mirror of this zone carries DIRTY-SIDE
@@ -77,11 +81,9 @@ Human look: Moonlight (in `/Applications/Nix Apps`) → `oracle-host`. Never RDP
    disallowed by convention; the exclude list unchanged for now. (b) ORACLE.md Q1 (is a trace
    clean?) before any trace crosses (D358). (c) Re-image the Spot host now that the toolchain is
    on its disk, then drop `ami-0d9ad24c824907565` (M38 §10.1; needs the admin key or the console).
-4. **Input injection (ORACLE.md §4.6), pulled forward?** The operator's call-out (2026-11-01):
-   making the save by hand showed that a harness for agents to drive the game would pay off.
-   D357 deferred injection to slice 2 because 1.7 changed the input classes (NG PR #298). A
-   research pass on the 1.7 input path (`BSInputEventQueue`, the handlers) before Part 2 or
-   after Part 5 is the operator's call; the `game-hold` scenario is the stopgap for human runs.
+4. **Input injection is pulled forward** (the operator, 2026-11-01): the research is
+   `docs/design/evidence/006-m44-input-control.md`, the decisions §4.1 (PR #299); `game-hold`
+   stays for human runs.
 5. **`home-executor`** (D316) and the **policy follow-ups** (M39 §9): not started.
 
 ## Traps (each measured; the records have the details)

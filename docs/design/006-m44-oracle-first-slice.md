@@ -613,6 +613,86 @@ The host's hours and dollars go here as Part 1 runs, as M38 §8 does.
     differs from the one SKSE's messages ran on); the variable coverage of §7 step 5 (Part 3).
     Traces: `~/skyrim-data-extracted/traces/2026-11-01-m44-part15/` on `aubron-roam` (D358).
 
+- **2026-11-01, Parts 3 and 4 built, in parallel on the same host session (01:59Z–02:28Z).**
+  - **Part 3, variables by diff** (`GraffAI/skyrim-oracle` `d8e06ca..ef7acf9`: `50b4363` snapshots,
+    `in.var`/`out.var`, `trace-stats.py --plateaus`, `trace-coverage.py --names`; `3b1d633` a
+    log-only watch of the value set around `NotifyAnimationGraph`; `e83f136`/`ef7acf9` NOTES
+    §22–26; world PR #307: `tools/slice/names.json`, 53 + 88, regenerated on `aubron-mini` from the
+    stock graphs with `tools/slice`'s scripts). **The layout read** (NG `adebc31d`):
+    `hkbVariableValueSet` = `hkReferencedObject` (0x10), words at 0x10, quads at 0x20, variants at
+    0x30, each an `hkArray` of 0x10, total 0x40; the set hangs off `hkbBehaviorGraph` at 0xD8; read
+    through a mirror struct with `static_assert`s. **Measured**: 301 words (capacity 301), 4 quads,
+    0 variants; types among the 301: bool 107, int8 1, int32 66, real 123, vector4 3, quaternion 1
+    (int16, pointer, vector3: 0); the four quad variables (`AdditiveHeadTransl/Scale/Rot`,
+    `TargetLocation`) index the quad array. Every run, 297 of 297 word variables equal the engine's
+    own `GetGraphVariable*`; the trace's `Speed` equals the side file's accessor at 2,400 of 2,400
+    polls. On a graph's first update (start or rebuild) every variable is written once as `in.var`
+    `via:"init"` (ORACLE.md §3.2's `init`); diffs are `via:"diff"`; keys are §3.2's exactly (`in.var`
+    `n v via`, `out.var` `n v prev`). A rebuild (two `setrace` steps): `graph` at f 0, 607, 1511,
+    each with 301 `init` records. **Cost**: 20.93 µs of hook time per frame, 7.15 of it the
+    snapshots, diff and records (13.79 without; Part 2 measured 14.0), from timers in one run;
+    **1.24 MB of trace per minute** (0.89 without the variable records, +38 %).
+  - **Part 4, the run path and the checker** (world PR #306, `29ca85f`, `b4f35ae`): `run.ps1`'s
+    SKSE path (a scenario dir with no `run.cmd`): I186's version refusal before launch (`done`=86),
+    `bAlwaysActive=1` once with a backup (D396), the Steam wait (87), a running game refused (88),
+    the launch with `ORACLE_SCENARIO`/`ORACLE_OUT`/`SteamAppId`, `oracle.status` `closed` then the
+    process's own exit (0), the 30 s kill (124), `input hook refused` (3), an exit with no `closed`
+    (7), the SKSE logs copied, the scenario's save hashed before and after. The `done` table is
+    `run.ps1`'s header. `test/run-contract.sh` runs the SKSE cases under pwsh on the Mac with a fake
+    game and test-only env knobs (86, 87, 0, 124, 3, 7, 2, the INI set once). Only `done`=0 has run
+    on the host; the other codes ran only under pwsh 7. `tools/trace/check` (clean, I187 as §8.1
+    corrects it): §3.2's kinds and keys; names against the trace's own `graph` dictionary
+    **case-insensitively** (the engine sends `TurnRight`/`TurnLeft` where the dictionary spells
+    `turnRight`/`turnLeft`: counted, listed, not failed); `out.evt` names outside `evts` counted, not
+    failed; `graph.evts` a warning; no address-like strings; `run` first; frames monotonic; eight
+    synthetic fixtures under `tools/trace/test`, a gate of the zone. Every real trace under
+    `~/skyrim-data-extracted/traces` prints `ok`. The two scenarios lost their interim
+    `run.cmd`/`wait-game.ps1`/`set-ini.ps1`.
+- **2026-11-01, Part 5: the exit (§7), run by the orchestrator through the finished path.**
+  - **Step 0** was Part 1.5's probe and scripted runs (above). **Step 1**: `devx oracle setup` →
+    ten `already done:` lines incl. `toolchain` and `skse`, `HOST-SETUP DONE` (02:29:07Z); the
+    banner → `Microsoft (R) C/C++ Optimizing Compiler Version 19.51.36260 for x64`. **Step 2**:
+    `build.ps1 -Install` → `BUILD OK`; `skse64_1_7_104.dll` `2fc575e9…547b`,
+    `versionlib-1-7-104-0.bin` `8aab3dd2…3842`, `oracle.dll` (this build)
+    `946e56ab2865c6de476c54249301a439958084d88866ddf94d31b29009866714`.
+  - **Steps 3, 4, 6**: `devx oracle run projects/skyrim/oracle/scenarios/loco-1hm-scripted --out
+    ~/skyrim-data-extracted/traces/2026-11-01-m44-exit/run{1,2} --timeout 10` (02:30:26Z and
+    02:31:33Z, 2 min each, 14 files each): **`done`=0** both; `oracle.status` `closed
+    reason=script-end frames=2599`, run1 `records=7876 bytes=903148 … in.var=2289 in.evt=38
+    out.evt=168 out.var=181 input frames=2401 stick=1180 mouse=379 down=4 held=194 up=4
+    dropped=0 hook=installed`, run2 `records=7859 … in.var=2272 … out.var=181 … dropped=0`; six
+    `hook installed` lines (I204); `oracle.log` `runtime 1.7.104.0 ok` (I186); `skse64.log`
+    `plugin oracle.dll (00000001 oracle 00020000) loaded correctly (handle 1)`; `save-after.txt`
+    `6426ca27…4445` both runs. `tools/trace/check` → **`ok`** both (`run=1 graph=1 frame=2599
+    dt=2599 in.var=2289/2272 in.evt=38 out.evt=168 out.var=181`; 22/23 `out.evt` records of 6
+    names outside `evts`: `EndAnimatedCameraDelta IdleOffsetStop tailMTLocomotion tailSprint
+    turnRightFast turnRightSlow`; 5 case-only matches). 2.0 MB per run directory.
+  - **Step 5, coverage** (`trace-coverage.py --names tools/slice/names.json`, the plugin's tool; §7
+    names a clean world tool `tools/trace/coverage` that does **not** exist yet — the gap, below):
+    **variables 17/53 = 32.1 %** (`in.var` 14, `out.var` 8, both 5; the other 36 have an `init`
+    value and never change in this scenario), **events 36/88 = 40.9 %** (`in.evt` 8, `out.evt`
+    28), both runs identical. **Required: all seen** — `Speed` 147× `in.var` (f 387…), `Direction`
+    8×, `TurnDelta` 231×; `SpeedSampled` 148× `out.var`, `IsSprinting` 1× (f 1950), `IsAttacking`
+    1× (f 2211); `moveStart` 7× `in.evt`, `SprintStart` 1× (f 1729), `attackStart` 1× (f 2123);
+    `weaponSwing`@2142, `HitFrame`@2144, `AttackWinStart`@2174, `AttackWinEnd`@2198 as `out.evt`,
+    **in that order**; the attack's 9 `out.evt` to `attackStop`@2199: `PowerAttack_Start_end
+    HeadTrackingOff preHitFrame weaponSwing HitFrame CastOKStart AttackWinStart AttackWinEnd
+    attackStop`. `Speed` plateaus (≥ 30 frames): **116.775215** (walk), **343.456512** (run),
+    **500** (sprint) — three distinct non-zero values. Not seen: 52 events (the dialogue, sneak,
+    dodge, shout, left-hand and power-attack families the scenario never exercises) and `turnLeft`/
+    `turnRight` in the dictionary's case.
+  - **Step 6**: `--compare run2` → **`out.evt` sequences EQUAL**, 1 vs 1 attack. **Step 7**:
+    `tools/wall/check` → `ok`; `dev check` → `OK: 0 failed`; `git ls-files` shows ten `.jsonl` in
+    the zone, all ours: the two scenarios' `input.jsonl` and eight synthetic fixtures — no trace
+    (§7's "no `.jsonl`" meant no trace; amended in §8.1).
+  - **Step 8**: `devx oracle down` 02:33:10Z (the host's third session: `up` 00:28:21Z, `status` at
+    02:33Z → `up 124 min`, `~$0.59 at $0.2872/h`; `stopped` at 02:40Z, `status` → `stopped (Spot, g6.xlarge, us-west-2c)`, I165; the session 00:28:21Z → 02:40Z ≈ 125 min ≈ $0.60). **M44's whole host
+    bill**: Part 1 ≈ $0.29 + the save ≈ $0.06 + this session ≈ $0.60 ≈ **$0.95**, plus the standing
+    root volume ($10.24/month) and the kept image ($2.59/month).
+  - **The gap left open, named**: `tools/trace/coverage` as a clean world tool (§7 step 5); the
+    exit used the plugin repo's `trace-coverage.py` and `trace-stats.py --plateaus`, which read only
+    the trace and `names.json`. Porting them is clean work for the next slice.
+
 ## 8.1 Corrections from Part 1 (2026-10-31)
 
 Measured or read at the pins by the Part 1 agents; the record above is left as written and
@@ -669,6 +749,39 @@ Corrections from Part 1.5 (2026-11-01):
   shown in the side file); the "run.cmd-free" probe needs a `run.cmd` until Part 4.
 - **D388's cost**: the context hook needs `SKSE_SUPPORT_XBYAK` (a CommonLib rebuild) and an
   include-order fix for `windows.h`; neither the evidence nor §4.1 said so.
+
+Corrections from Parts 3, 4 and 5 (2026-11-01):
+
+- **§7 step 5's `out.var` expectation holds only on the way down.** `IsSprinting` and
+  `IsAttacking` turn **on** inside `NotifyAnimationGraph`, between updates, so that change is an
+  `in.var` in the frame of `SprintStart`/`attackStart`; they turn **off** inside an update, an
+  `out.var`. Measured by the Part 3 watch: 38 notify calls, 19 changed a variable inside the call
+  (`SprintStart` → `IsSprinting iState iSyncSprintState`; `attackStart` → `IsAttacking iState`;
+  `WeapEquip`/`Unequip` → the equip flags; `moveStart` → `bHeadTrackSpine`).
+- **D353 and §3: "a change between updates is an engine write" is false** as stated. An `in.var`
+  diff means "changed between updates"; the graph itself does work there (inside notify), and
+  `IsAttackReady`/`TurnDeltaDamped` change outside both the update and the notify (generate or
+  sync, not hooked). The real engine streams are `TimeDelta` (1,410 changes), `TurnDelta`,
+  `Speed`, `m_worldFromModelFeedbackGain`, `iSync*`. Attribution is slice 2, as D353 says.
+- **`Speed`/`Direction` do not change every frame while moving**: `Speed` is a step (146 changes
+  in 2,599 frames, a ~5-frame ramp at each start and stop), `Direction` changed 8 times; the
+  smoothing is `SpeedSampled`.
+- **Letter case**: the dictionary spells `turnLeft`/`turnRight`; the engine sends `TurnLeft`/
+  `TurnRight`. The checker matches case-insensitively and reports it; the coverage tool does not
+  count a case-only match. `names.json` keeps the dictionary's spelling.
+- **I187, as implemented**: two exceptions to "not in the graph's dictionary fails" —
+  case-insensitive matching, and `out.evt` names outside `evts` counted, not failed.
+- **§8's Part 1.5 lines** that say `done` comes from `wait-game.ps1` "until Part 4" are now
+  history: `run.ps1` owns the table; the Steam code is 87 (the interim 8), an exit without `closed`
+  is 7, a kill is 124.
+- **§7 step 7's "`git status` shows no `.jsonl`"** means no *trace*: the scenarios' `input.jsonl`
+  and the checker's synthetic fixtures are tracked on purpose.
+- **ORACLE.md §3.2 vs the plugin**: `graph.evts` (not in §3.2); `run` has none of the common
+  `f t a g` keys; `in.var` `via` takes `init|diff` (§3.2 lists `api|chan|init`); `sm`/`node` have
+  no dictionary to check against (no trace has them yet). The clean trace-format spec lifted from
+  ORACLE.md §3 (D355's "later") should say all four.
+- **`C:\oracle\next` always exists** (`run.ps1` reads it and never deletes it); "the host is
+  busy" is a `SkyrimSE` process, the `OracleRun` task `Running`, or a changed `next` timestamp.
 
 ## 9. What this record does not do
 

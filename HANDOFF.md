@@ -1,55 +1,54 @@
 > DIRTY-SIDE: the state of the oracle plugin's work (006 M44), which builds on CommonLibSSE-NG, a reverse-engineered description of the game binary. Not for the clean implementation.
 
-# Handoff — `projects/skyrim`: 006 M44 Part 1 done (2026-10-31); Parts 2–5 next; the oracle host (006 M38, Spot)
+# Handoff — `projects/skyrim`: 006 M44 done (2026-11-01); the oracle host (006 M38, Spot); what is next
 
 Read first: the M44 record `docs/design/006-m44-oracle-first-slice.md` (**§8 as built, §8.1 the
-corrections**, then §3–§7), `ORACLE.md` (the plugin design, DIRTY-SIDE), the M38 record
-`infra/aws/docs/design/006-m38-aws-oracle-host.md` (§8, §10, **§10.1** the host's log),
-`devx/oracle/AGENTS.md`, then `AGENTS.md`. This file is the runbook and what is open. No tailnet
-address or `*.ts.net` name belongs here (this zone is mirrored).
+corrections**, §4.1 Part 1.5, then §3–§7), `ORACLE.md` (the plugin design, DIRTY-SIDE; §3 the trace
+format, §5.1 the input script, §8 the rows after this slice), the M38 record
+`infra/aws/docs/design/006-m38-aws-oracle-host.md` (§8, §10.1), `devx/oracle/AGENTS.md`, then
+`AGENTS.md`. This file is the runbook and what is open. No tailnet address or `*.ts.net` name
+belongs here (this zone is mirrored).
 
-## Where things are
+## What exists now (all measured 2026-11-01, M44 §8)
 
-- **The host:** `oracle-host`, EC2 `i-0599cd67fc597899a`, g6.xlarge Spot (persistent request,
-  stop on interruption), us-west-2c, 128 GiB gp3. On its disk now, all measured 2026-10-31 (M44
-  §8): Windows Server 2022, Steam logged in by its token (expiry May 2027), `SkyrimSE.exe`
-  **1.7.104.0**, **VS 2026 Build Tools 18.11.0** at `C:\BuildTools` (`cl` 19.51.36260, cmake
-  4.3.1, ninja), MinGit at `C:\oracle\tools\git`, vcpkg at `C:\vcpkg` (NG's baseline), **SKSE
-  2.3.1 built from `v2.3.1`** and installed in the game dir with the **Address Library 1.7.104
-  `.bin`**, and the plugin source at `C:\oracle\src\skyrim-oracle` (commit `e0591bf`, its build
-  dir warm: a plugin rebuild is ~19 s, a CommonLib rebuild ~750 s). `oracle.dll` (pinned
-  1.7.104.0) is installed in `Data\SKSE\Plugins` and loads: `oracle.log` says `runtime 1.7.104.0
-  ok`. **State at handoff: `stopped`** (`devx oracle down` 23:45Z → `stopped` 23:52Z). The retired on-demand host
-  is gone (terminated by the operator 2026-10-31); the image `ami-0d9ad24c824907565` (≈
-  $2.59/month) is kept until re-imaged (M38 §10.1).
-- **The plugin repository:** `GraffAI/skyrim-oracle` (private, GPL-3.0, DIRTY-SIDE; D355),
-  `dev cd skyrim-oracle` materialises it (manifest row shipped, PR #283). `main` = `e0591bf`: the
-  hello plugin (`src/main.cpp`, I186), `CMakeLists.txt` + `CMakePresets.json` (`release-msvc-ae`),
-  `vcpkg.json` + NG's `vcpkg-configuration.json`, `build.ps1` (`-Install`, `-PinnedRuntime`),
-  `NOTES.md` (what was verified, where). The NG submodule is pinned at `adebc31d` (v15.4.0). The
-  host has no GitHub credential: the tree reached it as a tarball over scp (`C:\oracle\in\`), so
-  **after a push, re-copy** (a `git bundle` or a fresh tarball) rather than `git pull` on the host.
-- **The Address Library** (D354): `~/skyrim-data-extracted/nexus/address-library-32444/` on both
-  Macs, with `SHA256SUMS`; fetched through the Nexus API with the fleet secret `nexus-api-key`
-  (the operator's Premium key; `secret get nexus-api-key`, header `apikey`, never argv). M44 §8
-  has the hashes and the four-call method.
-- **The tool:** `devx oracle up|down|status|ssh|setup|run|check` on both Macs. `setup` now has the
-  `toolchain` and `skse` steps (markers `C:\oracle\state\toolchain.done`, `skse.done`; PR #284,
-  #286). `run` of a `run.cmd` scenario is proven; `run.ps1`'s SKSE branch is still a **stub**
-  (Part 4). Scenarios: `game-launch` (the game starts), `skse-load` (the game starts through
-  the SKSE loader, 90 s, copies `SKSE\skse64.log`/`oracle.log` into `--out`; exit 0 = alive and
-  `oracle.log` present) and `game-hold` (the same start, then waits until the operator quits the
-  game at Moonlight, or 60 min; for the operator's own sessions, `--timeout 65`).
-- **The wall** (I188): `tools/wall/check` is a gate (`clean=73 dirty=18 files=91` on 2026-10-31).
-  Clean files may not name the plugin, its repository or CommonLib; mark a file `DIRTY-SIDE` in
-  its first three lines or keep the names out.
-- **Secrets** (fleet; `infra/machines/bin/secret ls`): `aws-oracle-key-id`/`-secret-key`,
-  `tailscale-oracle-authkey`, `tailscale-policy-oauth-id`/`-secret`, **`nexus-api-key`**.
-- **Scenarios (world):** `projects/skyrim/oracle/scenarios/input-probe` (D388's probe and the
-  three answers) and `loco-1hm-scripted` (`oracle.toml` with `look_via = "mouse"`, `input.jsonl`
-  made by `make-input.py`, `SCENARIO.md`); `devx/oracle/scenarios/{game-launch,skse-load,game-hold}`.
-- **Unmerged at handoff:** this file and M44 §8/§8.1 on branch `claude/kickoff-part-1`; the
-  `skse-load` scenario on `claude/skse-load-scenario` — both shipping as this is written.
+- **One command runs the slice with no human:** `devx oracle run
+  projects/skyrim/oracle/scenarios/loco-1hm-scripted --out <dir> --timeout 10` → the host loads the
+  operator's save, injects 380 scripted inputs (stick, mouse-look, buttons) at the engine's input
+  poll, records every graph event in and out and every variable change by diff, quits by itself,
+  `done`=0 in ~2 min; the trace passes `tools/trace/check`; two runs' attack sequences are EQUAL.
+  Coverage of the slice's names: variables 17/53, events 36/88 — the rest never change or fire in
+  this scenario (the dialogue, sneak, dodge, shout, left-hand and power-attack families).
+- **The plugin:** `GraffAI/skyrim-oracle` (private, GPL-3.0, DIRTY-SIDE; `dev cd skyrim-oracle`),
+  `main` = `ef7acf9`: `src/main.cpp` (I186), `src/oracle.cpp` (six hooks, all vtable-slot writes
+  plus one prologue-checked context hook at `PollInputDevices`; the writer; the injector; the
+  snapshots), `src/skse.h` (include order), `build.ps1` (`-Install`, `-PinnedRuntime`),
+  `tools/{trace-stats,trace-coverage,input-stats,addrlib-check}.py`, `NOTES.md` §1–26 (every
+  verified fact, URL and layout), `README.md` (the `oracle.toml` keys, the outputs). NG pinned at
+  `adebc31d` (v15.4.0). The host has no GitHub credential: changes reach it as a `git bundle` or
+  tarball over scp to `C:\oracle\in\` (NOTES §13/§18); never `git pull` there.
+- **The host** (`oracle-host`, g6.xlarge Spot, us-west-2c): Windows Server 2022, Steam logged in
+  (token to May 2027), `SkyrimSE.exe` 1.7.104.0, VS 2026 Build Tools 18.11.0 (`cl` 19.51), MinGit,
+  vcpkg, SKSE 2.3.1 from source, the Address Library 1.7.104 `.bin`, `oracle.dll` installed, the
+  source at `C:\oracle\src\skyrim-oracle` with a warm build dir (plugin rebuild ~20 s, CommonLib
+  ~12 min), the save `Saves\loco1hm.ess` (sha256 `6426ca27…4445`, first person, a room with a pool
+  and walls), `Skyrim.ini` `bAlwaysActive=1` (backup in `C:\oracle\in\ini-backup\`). **State at
+  handoff: `stopped`.** Three sessions for M44: ≈ 60 + 13 + 125 min ≈ $0.95. The image
+  `ami-0d9ad24c824907565` (≈ $2.59/month) is still kept.
+- **The tool:** `devx oracle up|down|status|ssh|setup|run|check`. `setup`'s steps incl. `toolchain`
+  and `skse` are idempotent by marker. `run <dir>` takes a `run.cmd` scenario, or (no `run.cmd`) the
+  SKSE path: I186's version refusal before launch, the Steam wait, the launch, `oracle.status`
+  `closed`, the exit; `done` codes in `run.ps1`'s header (0, 1, 2, 3, 5, 7, 86, 87, 88, 124, 127).
+  Scenarios: `projects/skyrim/oracle/scenarios/{input-probe,loco-1hm-scripted}` (`oracle.toml`,
+  `input.jsonl`, `SCENARIO.md`; `make-input.py` writes a script), `devx/oracle/scenarios/
+  {game-launch,skse-load,game-hold}` (`run.cmd` ones; `game-hold` for a human session).
+- **Clean-side tools:** `tools/wall/check` (I188, a gate), `tools/trace/check` (I187, a gate on
+  fixtures), `tools/slice/names.json` (53 + 88). **Missing**: a clean `tools/trace/coverage` (§7
+  step 5 names it; the exit used the plugin repo's `trace-coverage.py`).
+- **Traces** (D358, never in git): `~/skyrim-data-extracted/traces/2026-11-01-m44-{part2,part15,
+  part3,part4,exit}/` on `aubron-roam`. The operator has not answered ORACLE.md Q1 (is a trace
+  clean?): nothing has crossed to the clean side.
+- **Secrets** (fleet): `aws-oracle-key-id`/`-secret-key`, `tailscale-oracle-authkey`,
+  `tailscale-policy-oauth-id`/`-secret`, `nexus-api-key` (the operator's Nexus Premium key).
 
 ## The runbook
 
@@ -58,66 +57,55 @@ devx oracle status                       # state, uptime, tailnet, hold or idle 
 devx oracle up                           # Spot: capacity can refuse (exit 3) — try again later
 devx oracle setup                        # every step idempotent; prints already done: <step>
 devx oracle ssh -- 'powershell -NoProfile -ExecutionPolicy Bypass -File C:\oracle\src\skyrim-oracle\build.ps1 -Install'
-devx oracle run devx/oracle/scenarios/skse-load --out /tmp/sl   # does SKSE load oracle.dll? read oracle.log in --out
+devx oracle run projects/skyrim/oracle/scenarios/loco-1hm-scripted --out ~/skyrim-data-extracted/traces/<date>-loco --timeout 10
+python3 -I tools/trace/check ~/skyrim-data-extracted/traces/<date>-loco/oracle.jsonl
 devx oracle down                         # always, when a session ends (I165); a Spot stop takes ~7 min
 ```
-Human look: Moonlight (in `/Applications/Nix Apps`) → `oracle-host`. Never RDP (ORACLE-HOST.md §2).
+Human look: Moonlight (in `/Applications/Nix Apps`) → `oracle-host`; `devx oracle run
+devx/oracle/scenarios/game-hold --out /tmp/gh --timeout 65` keeps the game up for you. Never RDP.
 
 ## Open, in order
 
-1. **Parts 1, 1.5 and 2 are built** (M44 §8, 2026-11-01): `devx oracle run
-   projects/skyrim/oracle/scenarios/loco-1hm-scripted --out <dir> --timeout 10` runs the §3
-   scenario with **no human** — the save loads, 380 scripted inputs go in, `attackStart` →
-   `weaponSwing … AttackWinEnd` in order, the game quits, `done`=0, two runs EQUAL. The save:
-   `Saves\loco1hm.ess` (2,491,946 bytes, sha256 `6426ca27…4445`, first person; the scenario sets
-   `third_person = true`; the room has a pool and walls, the route avoids them). Next:
-   **Part 3** (variables by diff: `in.var`/`out.var` from `hkbVariableValueSet` by layout — its
-   arrays are private at the pin — and the 53 names checked; `Speed` plateaus then show in the
-   trace), **Part 4** (`run.ps1`'s SKSE branch: Steam wait, I186 version check, `bAlwaysActive`,
-   `%ORACLE_SCENARIO%`, the end per D395 with `done` 0/124/3 — the scenarios' interim `run.cmd`/
-   `wait-game.ps1`/`set-ini.ps1` are the working draft; `tools/trace/check` with fixtures,
-   allowing `graph.evts` and `out.evt` names outside the root dictionary), **Part 5** (the exit,
-   §7, hours and dollars, this file). `tools/slice/names.json` (the 53 variables and 88 events the exit checks)
-   is not written yet; its README says so. Part 2 or Part 5 writes it from the evidence.
-2. **Parts 3–5** as the record says (Part 3 reads `hkbVariableValueSet` by layout: its arrays are
-   private at the pin; Part 4's checker allows `graph.evts` and `out.evt` names outside the root
-   dictionary, §8.1); Part 4 writes `run.ps1`'s SKSE branch (Steam wait, the
-   version check I186, the launch, the end of the run per D357 — `skse-load/run.cmd` is the
-   working draft) and `tools/trace/check`; Part 5 the exit and §8's hours and dollars.
-3. **The operator's open decisions:** (a) the public mirror of this zone carries DIRTY-SIDE
-   files (the M44 record and its evidence, this file, `ORACLE-HOST.md`, `tools/wall/check`,
-   `tools/census/render_index.py`); the exclude list holds only `ORACLE.md`, `semantics`,
-   `tools/contract`. The operator's lean (2026-10-31): keep both sides in this zone, reading
-   disallowed by convention; the exclude list unchanged for now. (b) ORACLE.md Q1 (is a trace
-   clean?) before any trace crosses (D358). (c) Re-image the Spot host now that the toolchain is
-   on its disk, then drop `ami-0d9ad24c824907565` (M38 §10.1; needs the admin key or the console).
-4. **Input injection is pulled forward** (the operator, 2026-11-01): the research is
-   `docs/design/evidence/006-m44-input-control.md`, the decisions §4.1 (PR #299); `game-hold`
-   stays for human runs.
-5. **`home-executor`** (D316) and the **policy follow-ups** (M39 §9): not started.
+1. **The operator's decisions.** (a) **ORACLE.md Q1**: is a trace (names from data files + values)
+   clean enough to cross to the clean side (D358)? Nothing crosses until answered. (b) **The
+   public mirror** carries DIRTY-SIDE files (the M44 record and evidence, this file,
+   `ORACLE-HOST.md`, `tools/wall/check`, `tools/census/render_index.py`); the exclude list holds
+   `ORACLE.md`, `semantics`, `tools/contract`. The lean (2026-10-31): both sides stay here, reading
+   disallowed by convention. (c) **Re-image the Spot host** now that the toolchain is on its disk,
+   then drop `ami-0d9ad24c824907565` (M38 §10.1; needs the admin key or the console).
+2. **The next slice** (ORACLE.md §8 rows 4+ and §4.4): attribution (`via: api|chan` — who wrote an
+   `in.var`: the engine or the graph inside notify; M44 §8.1), `state`/`nodes`/`clip`/`motion`/
+   `snap`, the first-person graph, NPCs, jump, `action` records (the actor-mediator path needs an
+   offset hunt), `UpdateAnimationGraphManager` (non-virtual). A record before code (`dev record
+   claim`); the M44 record's §8.1 is its reading list.
+3. **Small clean work**: `tools/trace/coverage` in world (port the plugin's, trace + `names.json`
+   only); the clean trace-format spec lifted from ORACLE.md §3 (D355) with `graph.evts`, `run`'s
+   keys, `via: init|diff`, and the `sm`/`node` dictionary question; a third-person save (the
+   scenario forces the camera today).
+4. **`home-executor`** (D316) and the **policy follow-ups** (M39 §9): not started.
 
 ## Traps (each measured; the records have the details)
 
-- **`cmake --build` returns -1 on a failed build**, and a batch file's `if errorlevel 1` means
-  `>= 1`: the skse step installed and marked done over a failed target on 2026-10-31. Use
-  `if %errorlevel% neq 0` (PR #286). SKSE's `skse64_msstore_loader` does not link with this
-  toolchain (LNK1327, a manifest `level` mismatch) and is not built.
-- **NG's headers rely on its precompiled header**: include `SKSE/SKSE.h` before any `REL/` or
-  `RE/` header in a plugin source, or every `std::` name is missing (`C2039`). And
-  `SKSE_SUPPORT_PATCH_SAFETY=OFF` breaks NG's own `Trampoline.cpp` under `/W4 /WX`; keep NG's
-  default and pin minhook (hde64) yourself.
-- **SKSE 2.3.1 ignores `compatibleVersions` once the Address Library flag is set**: a plugin
-  pinned to 1.7.99.0 still reached `loading plugin`; only `SKSEPlugin_Load`'s own check refused it
-  (`reported as incompatible during load 0`). I186 lives in `Load`, not in the version data.
-- **The DLL's hash changes on every build** (timestamps are embedded): record the hash from the
-  `-Install` run, not from an earlier build.
-- **A plain `scp` to the host fails** without the tool's options: use `-o UserKnownHostsFile=
-  ~/.local/state/devx-oracle/known_hosts -o HostKeyAlias=oracle-host -o IdentitiesOnly=no -i
-  ~/.ssh/unattended_ed25519`, destination `runner@<host>:/C:/oracle/in/<file>`.
-- **Build Tools install is fast here** (2 min 41 s for 18.11.0), the SKSE build 40 s, the first
-  CommonLib build 750 s; an `up … down` session for a plugin iteration is ~10 min of host time.
-- **A game launched within ~3 min of boot exits silently**: wait for Steam's logon (the
-  scenarios do, up to 180 s). **After `down`, the Spot request reads `marked-for-stop` ~25 s.**
-  **Spot capacity for g6.xlarge comes and goes by zone.** `tailscale status` over SSH as `runner`
-  is refused. `SkyrimSE.exe` without `SteamAppId` exits 53. `aws-bootstrap` needs an admin key
-  only for IAM, images, launches and quota requests. (All from M38 §8 and §10.1.)
+- **Hooks**: NG's headers rely on its precompiled header — include `SKSE/SKSE.h` first; the input
+  context hook needs `SKSE_SUPPORT_XBYAK` (a CommonLib rebuild) and `windows.h`'s macros then break
+  NG's headers (`src/skse.h`); `SKSE_SUPPORT_PATCH_SAFETY=OFF` breaks NG under `/W4 /WX`.
+- **Input**: gamepad thumbstick events are used with **no pad connected**; a written heading
+  turns the player with no `TurnDelta` and no turn events — use mouse-move input sized from the
+  **camera** yaw (`look_via = "mouse"`); the right stick turns 2.7°/s with no pad. There is no
+  `Sheathe` user event: `Ready Weapon` toggles. Frames are input polls; frame 0 is ~144 polls after
+  `kPostLoadGame` plus 60 settle polls.
+- **Variables**: `IsSprinting`/`IsAttacking` turn on inside `NotifyAnimationGraph` (an `in.var`),
+  off inside the update (an `out.var`); `Speed` is a step with a ~5-frame ramp, not a per-frame
+  stream; `TimeDelta` changes every frame. The dictionary spells `turnRight`, the engine sends
+  `TurnRight`.
+- **SKSE 2.3.1 ignores `compatibleVersions`** once the Address Library flag is set; I186 is the
+  check in `Load`. **The DLL's hash changes per build** (timestamps). **`cmake --build` returns
+  -1** on failure: batch `if errorlevel 1` misses it; use `if %errorlevel% neq 0`.
+- **The host**: `C:\oracle\next` always exists (busy = a `SkyrimSE` process or `OracleRun`
+  `Running`); the game launched within ~3 min of boot races Steam's logon (the run path waits);
+  a plain `scp` needs the tool's options (`UserKnownHostsFile`, `HostKeyAlias=oracle-host`,
+  `IdentitiesOnly=no`, the unattended key); the save loads in **first person**; the room is not
+  empty (pool west, walls east and north). After `down`, the Spot request reads `marked-for-stop`
+  ~25 s. Spot capacity comes and goes by zone.
+- **Costs**: Build Tools 2 min 41 s, SKSE 40 s, CommonLib 750 s, a plugin rebuild 19 s, a scripted
+  run 2 min; a session of edit-build-run is ~10 min of host time (≈ $0.05).

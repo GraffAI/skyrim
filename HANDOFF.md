@@ -36,9 +36,10 @@ address or `*.ts.net` name belongs here (this zone is mirrored).
 - **The tool:** `devx oracle up|down|status|ssh|setup|run|check` on both Macs. `setup` now has the
   `toolchain` and `skse` steps (markers `C:\oracle\state\toolchain.done`, `skse.done`; PR #284,
   #286). `run` of a `run.cmd` scenario is proven; `run.ps1`'s SKSE branch is still a **stub**
-  (Part 4). Scenarios: `game-launch` (the game starts) and `skse-load` (the game starts through
+  (Part 4). Scenarios: `game-launch` (the game starts), `skse-load` (the game starts through
   the SKSE loader, 90 s, copies `SKSE\skse64.log`/`oracle.log` into `--out`; exit 0 = alive and
-  `oracle.log` present).
+  `oracle.log` present) and `game-hold` (the same start, then waits until the operator quits the
+  game at Moonlight, or 60 min; for the operator's own sessions, `--timeout 65`).
 - **The wall** (I188): `tools/wall/check` is a gate (`clean=73 dirty=18 files=91` on 2026-10-31).
   Clean files may not name the plugin, its repository or CommonLib; mark a file `DIRTY-SIDE` in
   its first three lines or keep the names out.
@@ -62,9 +63,9 @@ Human look: Moonlight (in `/Applications/Nix Apps`) → `oracle-host`. Never RDP
 ## Open, in order
 
 1. **M44 Part 2** — events both ways and the frame (`run`, `graph`, `frame`, `dt`, `in.evt`,
-   `out.evt`, the canonical writer). Needs the operator's save for `loco-1hm` (a flat empty
-   interior, one-handed sword, sheathed; §3) — **not yet made**; its existence on the host is
-   **not verified**. `tools/slice/names.json` (the 53 variables and 88 events the exit checks)
+   `out.evt`, the canonical writer). The operator's save for `loco-1hm` **exists** on the host:
+   `Saves\loco1hm.ess` (2,491,946 bytes, sha256 `6426ca27…4445`, made 2026-11-01 00:10Z at
+   Moonlight in `qasmoke` with an iron sword; M44 §8). `tools/slice/names.json` (the 53 variables and 88 events the exit checks)
    is not written yet; its README says so. Part 2 or Part 5 writes it from the evidence.
 2. **Parts 3–5** as the record says; Part 4 writes `run.ps1`'s SKSE branch (Steam wait, the
    version check I186, the launch, the end of the run per D357 — `skse-load/run.cmd` is the
@@ -76,7 +77,12 @@ Human look: Moonlight (in `/Applications/Nix Apps`) → `oracle-host`. Never RDP
    disallowed by convention; the exclude list unchanged for now. (b) ORACLE.md Q1 (is a trace
    clean?) before any trace crosses (D358). (c) Re-image the Spot host now that the toolchain is
    on its disk, then drop `ami-0d9ad24c824907565` (M38 §10.1; needs the admin key or the console).
-4. **`home-executor`** (D316) and the **policy follow-ups** (M39 §9): not started.
+4. **Input injection (ORACLE.md §4.6), pulled forward?** The operator's call-out (2026-11-01):
+   making the save by hand showed that a harness for agents to drive the game would pay off.
+   D357 deferred injection to slice 2 because 1.7 changed the input classes (NG PR #298). A
+   research pass on the 1.7 input path (`BSInputEventQueue`, the handlers) before Part 2 or
+   after Part 5 is the operator's call; the `game-hold` scenario is the stopgap for human runs.
+5. **`home-executor`** (D316) and the **policy follow-ups** (M39 §9): not started.
 
 ## Traps (each measured; the records have the details)
 

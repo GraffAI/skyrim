@@ -396,6 +396,20 @@ The host's hours and dollars go here as Part 1 runs, as M38 §8 does.
     `status` → `stopped (Spot, g6.xlarge, us-west-2c)`, I165): **60 min ≈ $0.29** at $0.2875/h
     (`status` at 23:43:48Z: `up 52 min`, `~$0.25`). The image `ami-0d9ad24c824907565` (≈ $2.59/month) is still kept: the
     toolchain is now on the Spot host's disk, so M38 §10.1's re-image-and-drop can follow.
+  - **The `loco-1hm` save (D357, §3), 2026-11-01, a second session.** `up` 00:06:13Z (ssh ok after
+    1 min); the game started through `skse64_loader.exe` by the `game-hold` scenario at 00:07:05Z
+    (Steam already logged on: `ActiveUser` ≠ 0 at 00:07:20Z, 1.5 min after boot — faster than the
+    2026-10-19 trap says); the operator at Moonlight made the save and quit at 00:10:18Z (the
+    hold saw the quit and ended, rc 0, 4 min). On the host, `Documents\My Games\Skyrim Special
+    Edition\Saves\loco1hm.ess`, **2,491,946 bytes**, sha256
+    `6426ca27c1153e37519fc995bbb0bd489ca8be083674917c63355f359f7c4445`, beside `loco1hm.skse`
+    (506 bytes, SKSE's co-save: SKSE and the plugin were loaded when it was written). The steps
+    given were `coc qasmoke`, an iron sword (`player.additem 00012EB7 1`) equipped and sheathed,
+    `save loco1hm`; the cell and the equipped weapon are the operator's doing, **not verified** by
+    a read of the save. The save is the operator's and stays on the host's disk (I152: it is
+    Bethesda-format data; nothing of it enters the zone but this line). Six saves from 2020 are
+    also in that directory, from Steam's cloud (`steam_autocloud.vdf`): the operator's own.
+    Host: `down` 00:12Z → `stopped` 00:19Z; the session 00:06:13Z → 00:19Z ≈ 13 min ≈ **$0.06**.
 
 ## 8.1 Corrections from Part 1 (2026-10-31)
 

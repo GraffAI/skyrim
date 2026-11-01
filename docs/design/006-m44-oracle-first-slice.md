@@ -234,6 +234,80 @@ the game (§4 D357 says how, and the fallback).
   The decision whether a trace is clean is the operator's and is written down before the first
   `drive.jsonl` crosses (REPORT.md open question 6).
 
+## 4.1 Addendum (2026-11-01) — Part 1.5, input and control: D388–D396, I204–I206
+
+*The operator pulled injection forward from slice 2 on 2026-11-01 ("as autonomous as possible"),
+after making the `loco-1hm` save by hand (§8). D357's "the operator at Moonlight" stands for Part 1
+as run; from here the scenario is scripted. The research is
+[evidence/006-m44-input-control.md](evidence/006-m44-input-control.md) (DIRTY-SIDE; every claim
+with its file:line or URL; the Address Library IDs it names were looked up in the 1.7.104 table:
+all present but 21890). ORACLE.md §5.1's script format is kept, with the clarifications below.*
+
+- **D388 — Input enters through `BSInputEventQueue`, filled from a context hook at the entry of
+  `BSInputDeviceManager::PollInputDevices` (`RELOCATION_ID(67315, 68617)`), installed only if the
+  first 10 bytes equal the known prologue; otherwise the plugin logs `input hook refused` and the
+  run ends `done`=3, never a guess.** Reason: the one hook point with a live 1.7.104 user
+  (devbench, NG #347); events added before the poll reach every sink and the real handlers; no
+  handler vtable is hooked, so PR #298's slot shift stays the engine's. Flips if the prologue
+  differs on our exe (then the `+0x7B` call site with an `E8` check) or injected events are lost
+  (then a splice of `PlayerControls`' handler list). Rejected: SKSE's `TaskInterface` (devbench:
+  its tasks run after dispatch and lose events); OS-level input (Sunshine, ViGEmBus, `SendInput`):
+  no frame alignment, a foreground dependency, ViGEmBus archived and "Windows Server not
+  supported" — the fallback if D388's check fails, not the design.
+- **D389 — Movement is a left-thumbstick event every frame while the script's `stick move` is
+  non-zero, `device=kGamepad`; one zero on release.** Reason: analog `Speed` (walk and run
+  plateaus), one event per frame removes any dependence on persistence. Flips if the probe (§7
+  step 0) shows the engine drops gamepad events with no pad connected: then digital `Forward`/
+  `Back`/`Strafe *`/`Run` buttons, and analog speed waits for a measured `moveInputVec` write.
+- **D390 — Buttons are user-event names (`UserEvents`: `Right Attack/Block`, `Sprint`,
+  `Ready Weapon`, …) resolved to codes with `ControlMap::GetMappedKey`, both in the event; a hold is
+  down, then a held event with real `heldDownSecs` every frame, then up — never down and held in
+  one frame.** Reason: evidence §2.3 and devbench's held-key rules. There is no `Sheathe` event:
+  `Ready Weapon` toggles. Flips if a handler ignores a named event with a keyboard code.
+- **D391 — `look` is absolute: the player's heading and pitch are written in the hook, third
+  person, free rotation off.** Reason: ORACLE.md §5.1; no sensitivity. Flips if the written
+  heading yields no `TurnDelta` or snaps the graph (then a right-thumbstick event sized from the
+  remaining angle, recorded as such).
+- **D392 — The plugin records what it injected and what the engine made of it**: an `in.input`
+  line per injected event and the frame's `PlayerControlsData` (`moveInputVec`, `lookInputVec`,
+  `running`) read after the original `ProcessEvent`. These are engine-structure fields: they go to
+  `oracle.log` or a side file, **not** the clean trace (I187), unless the operator rules otherwise.
+- **D393 — Frames are input polls.** Script frame 0 is the first poll after `kPostLoadGame` with
+  the loading and fader menus closed and the player's 3D loaded, plus `settle` polls (default 60);
+  the engine's frame counter is logged beside it. Reason: the hook runs once per poll; it is the
+  only clock the injector owns.
+- **D394 — Setup `console` lines run through `Script::CompileAndRun` (the `AE_CHECK` ID 441582,
+  present in the 1.7.104 table; 21890 is not) on the main thread from the poll hook, before frame
+  0; `save` and `load` are refused in scripts.** Reason: evidence §4; devbench's console-save
+  deadlock.
+- **D395 — `end` flushes and closes the trace, then issues `qqq`; `run.ps1` waits 30 s for the
+  process to exit, then kills it. `done`: 0 exited by itself, 124 killed after a closed trace
+  (D357's fallback), 3 input hook refused.** Flips if `qqq` hangs on 1.7.104 (then
+  `Main::quitGame`, then the kill alone). The save load itself is Part 2's
+  (`BGSSaveLoadManager::Load`).
+- **D396 — `run.ps1` sets `bAlwaysActive=1` in the game's INI before launch.** Reason: an
+  unattended run must not depend on window focus. Flips if the host measures no pause on focus
+  loss.
+- **I204 — No handler or camera vtable is written by the injector**; D388's is the input path's
+  only hook, and `oracle.log` lists every installed hook at load (`grep -c 'hook installed'` equals
+  the documented count).
+- **I205 — Injection never exceeds the queue's per-frame capacity silently** (10 button, 2
+  thumbstick, 1 mouse): an event that does not fit is logged with its frame; `grep 'input
+  dropped'` is empty for the exit's scenario.
+- **I206 — Input runs only inside the judged window or setup**: nothing is injected while the
+  main menu, a loading menu or the console is open, or before D393's frame 0, except D394's setup.
+
+Script clarifications (ORACLE.md §5.1 unchanged): `f` counts D393's polls; `button` ids are
+`UserEvents` names; `hold` frames are re-emitted held events; `stick` ids are `move` and, if D391
+flips, `look`; `setup` gains an optional `settle`; `console` lines with `save`/`load` are rejected.
+Rejected: an event-keyed wait — frame keys stay the only clock, so a script is the same input on
+every run. Risks, in the evidence's order: gamepad events with no gamepad; `AddThumbstickEvent`/
+`AddMouseMoveEvent` validated on 1.7.104 only against disassembly (a wrong offset is a crash on
+the first event); heading writes bypassing the turn path; a `qqq` teardown hang (flush first);
+focus on a console session with no Moonlight client; two hooks on one poll if Parts 1.5 and 2 do
+not share D393's hook and Part 2's load. Estimate: 3–5 engineer-days, 4–8 host sessions of
+10–15 min; **not verified** against anyone's velocity.
+
 ## 5. Invariants
 
 - **I186 — The plugin loads only on 1.7.104.0.** `SKSEPluginVersionData` declares AE +
@@ -262,6 +336,13 @@ the game (§4 D357 says how, and the fallback).
    `host-setup.ps1`'s `toolchain` phase; SKSE built from `v2.3.1` on the host and installed
    into the game dir; the operator's Address Library download, hashed and installed. Exit 1
    and 2 below.
+1.5. **Part 1.5 — input and control (D388–D396, I204–I206; added 2026-11-01).** The poll hook,
+   the queue writer and held-state machine, the script loader with D393's clock, `console` setup
+   and the `qqq` end, `bAlwaysActive`; the probe `input-probe` (§7 step 0) and its three answers
+   (gamepad events without a pad; thumbstick offsets live; heading vs `TurnDelta`); then
+   `projects/skyrim/oracle/scenarios/loco-1hm-scripted/` (the §3 script as `input.jsonl`). Shares
+   Part 2's load and frame hook. Part 2's "a capture of `loco-1hm`" and Parts 4–5's exits then run
+   with no human.
 2. **Part 2 — events both ways and the frame.** `run`, `graph`, `frame`, `dt`, `in.evt`,
    `out.evt`, the canonical writer (fixed key order, `%.9g`, per-frame canonical sort, a writer
    thread), graph-rebuild re-attach. A capture of `loco-1hm` shows `attackStart` in and
@@ -283,6 +364,13 @@ attribution plus the run path. Not verified against anyone's velocity.
 
 Each step is a command whose output goes into §8.
 
+0. **Input (Part 1.5, added 2026-11-01)**: `devx oracle run …/input-probe` → `oracle.log` has
+   `input hook installed (prologue ok)`, and for 60 frames each of a left stick `(0, 0.5)`, `(0, 1)`
+   and a keyboard `Forward`, the logged `moveInputVec` is non-zero and the player's position
+   changed; `done`=0. Then `devx oracle run projects/skyrim/oracle/scenarios/loco-1hm-scripted`
+   with no Moonlight session → the trace shows `Speed` at two distinct non-zero plateaus, the
+   side file shows every scripted event injected and `input dropped` absent, and steps 4–6 below
+   hold with `done`=0 within `duration_s` + 30 s (or 124 per D395, said so in §8).
 1. **Toolchain**: `devx oracle setup` prints `toolchain` done once and `already done: toolchain`
    on a second run; `devx oracle ssh -- 'cmd /c "C:\BuildTools\VC\Auxiliary\Build\vcvars64.bat
    >nul && cl 2>&1 | findstr Version"'` → `Microsoft (R) C/C++ Optimizing Compiler Version
